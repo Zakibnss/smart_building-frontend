@@ -9,7 +9,7 @@ import '../models/parking.dart';
 
 class ApiService {
   // Pour Chrome (localhost)
-  static const String baseUrl = 'http://localhost/smart-residence/backend/api';
+  static const String baseUrl = 'http://10.0.2.2/smart-residence/smart_building-backend/backend/api';
   
   // Pour Android emulator (décommentez si besoin)
   // static const String baseUrl = 'http://10.0.2.2/smart-residence/backend/api';
