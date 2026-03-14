@@ -24,32 +24,25 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    // Fonction utilitaire pour convertir en int de façon sécurisée
+    int toInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is int) return value;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
     return User(
-      id: json['id'],
-      nom: json['nom'],
-      email: json['email'],
-      role: json['role'],
-      complexId: json['complex_id'],
+      id: toInt(json['id']),
+      nom: json['nom'] ?? '',
+      email: json['email'] ?? '',
+      role: json['role'] ?? '',
+      complexId: toInt(json['complex_id']),
       complexNom: json['complex_nom'],
       telephone: json['telephone'],
-      residentId: json['resident_id'],
+      residentId: toInt(json['resident_id']),
       numeroAppartement: json['numero_appartement'],
       batiment: json['batiment'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'nom': nom,
-      'email': email,
-      'role': role,
-      'complex_id': complexId,
-      'complex_nom': complexNom,
-      'telephone': telephone,
-      'resident_id': residentId,
-      'numero_appartement': numeroAppartement,
-      'batiment': batiment,
-    };
   }
 }
