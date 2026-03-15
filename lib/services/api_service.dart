@@ -72,27 +72,78 @@ class ApiService {
       return {'success': false, 'message': 'Erreur de connexion: $e'};
     }
   }
+// ==================== DÉCONNEXION ====================
 
-  // ==================== ADMINISTRATION ====================
+static Future<Map<String, dynamic>> logout() async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth/logout.php'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
-  static Future<Map<String, dynamic>> getAdminStats() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/admin/stats.php'),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-      return {'success': false, 'message': 'Erreur chargement stats'};
-    } catch (e) {
-      print('❌ Erreur stats admin: $e');
-      return {'success': false, 'message': e.toString()};
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
     }
+    return {'success': false, 'message': 'Erreur lors de la déconnexion'};
+  } catch (e) {
+    print('❌ Erreur déconnexion: $e');
+    return {'success': false, 'message': e.toString()};
   }
+}
+  // ==================== ADMINISTRATION - STATISTIQUES ====================
 
-  // Gestion des résidents
+static Future<Map<String, dynamic>> getAdminStats() async {
+  try {
+    print('📊 Récupération des statistiques...');
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats.php'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    print('📥 Statut: ${response.statusCode}');
+    print('📥 Réponse brute: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> jsonResponse = json.decode(response.body);
+      print('✅ Réponse JSON: $jsonResponse');
+      
+      // S'assurer que la réponse a la structure attendue
+      if (jsonResponse.containsKey('success') && jsonResponse['success'] == true) {
+        return jsonResponse;
+      } else {
+        return {'success': false, 'message': 'Structure de données invalide'};
+      }
+    }
+    return {'success': false, 'message': 'Erreur chargement stats'};
+  } catch (e) {
+    print('❌ Erreur stats admin: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+// ==================== ACTIVITÉS RÉCENTES ====================
+
+static Future<Map<String, dynamic>> getRecentActivities() async {
+  try {
+    print('📊 Récupération des activités récentes...');
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/recent_activities.php'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    print('📥 Statut: ${response.statusCode}');
+    print('📥 Réponse: ${response.body}');
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'activities': []};
+  } catch (e) {
+    print('❌ Erreur activités récentes: $e');
+    return {'success': false, 'activities': []};
+  }
+}
+  // ==================== GESTION DES RÉSIDENTS ====================
+
   static Future<List<Resident>> getResidents() async {
     try {
       final response = await http.get(
@@ -172,7 +223,8 @@ class ApiService {
     }
   }
 
-  // Gestion des agents
+  // ==================== GESTION DES AGENTS DE SÉCURITÉ ====================
+
   static Future<List<User>> getSecurityAgents() async {
     try {
       final response = await http.get(
@@ -196,6 +248,64 @@ class ApiService {
     }
   }
 
+  static Future<bool> addSecurityAgent(Map<String, dynamic> agentData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/security_agents.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(agentData),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur ajout agent sécurité: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateSecurityAgent(
+      int id, Map<String, dynamic> agentData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/admin/security_agents.php?id=$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(agentData),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur modification agent sécurité: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteSecurityAgent(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/admin/security_agents.php?id=$id'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur suppression agent sécurité: $e');
+      return false;
+    }
+  }
+
+  // ==================== GESTION DES AGENTS DE SERVICE ====================
+
   static Future<List<User>> getServiceAgents() async {
     try {
       final response = await http.get(
@@ -218,6 +328,143 @@ class ApiService {
       return [];
     }
   }
+
+  static Future<bool> addServiceAgent(Map<String, dynamic> agentData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/service_agents.php'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(agentData),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur ajout agent service: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> updateServiceAgent(
+      int id, Map<String, dynamic> agentData) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/admin/service_agents.php?id=$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(agentData),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur modification agent service: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteServiceAgent(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/admin/service_agents.php?id=$id'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'] ?? false;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Erreur suppression agent service: $e');
+      return false;
+    }
+  }
+
+  // ==================== GESTION DES TECHNICIENS (CONSULTATION SEULE) ====================
+// ==================== GESTION DES TECHNICIENS ====================
+
+static Future<List<User>> getTechnicians() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/technicians.php'),
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      if (data['success']) {
+        List<User> technicians = [];
+        for (var item in data['technicians']) {
+          technicians.add(User.fromJson(item));
+        }
+        return technicians;
+      }
+    }
+    return [];
+  } catch (e) {
+    print('❌ Erreur chargement techniciens: $e');
+    return [];
+  }
+}
+
+static Future<bool> addTechnician(Map<String, dynamic> data) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/admin/technicians.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(data),
+    );
+
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      return result['success'] ?? false;
+    }
+    return false;
+  } catch (e) {
+    print('❌ Erreur ajout technicien: $e');
+    return false;
+  }
+}
+
+static Future<bool> updateTechnician(int id, Map<String, dynamic> data) async {
+  try {
+    final response = await http.put(
+      Uri.parse('$baseUrl/admin/technicians.php?id=$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(data),
+    );
+
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      return result['success'] ?? false;
+    }
+    return false;
+  } catch (e) {
+    print('❌ Erreur modification technicien: $e');
+    return false;
+  }
+}
+
+static Future<bool> deleteTechnician(int id) async {
+  try {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/admin/technicians.php?id=$id'),
+    );
+
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      return result['success'] ?? false;
+    }
+    return false;
+  } catch (e) {
+    print('❌ Erreur suppression technicien: $e');
+    return false;
+  }
+}
 
   // ==================== RÉCLAMATIONS ====================
 

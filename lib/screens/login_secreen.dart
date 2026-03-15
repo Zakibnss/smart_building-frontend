@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/user.dart';
 import 'resident_dashboard.dart';
-import 'admin_dashboard.dart';
+import 'admin/dashboard/admin_dashboard.dart';
 import 'security_dashboard.dart';
 import 'service_dashboard.dart';
 
@@ -55,8 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
           dashboard = ServiceDashboard(user: user);
           break;
         case 'admin':
-          dashboard = AdminDashboard(user: user);
-          break;
+dashboard = AdminDashboard(userName: user.nom);  // Passez uniquement le nom  // Passez uniquement le nom          break;
         default:
           _showMessage('Rôle inconnu', Colors.red);
           return;

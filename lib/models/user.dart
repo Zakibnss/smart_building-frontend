@@ -9,6 +9,10 @@ class User {
   final int? residentId;
   final String? numeroAppartement;
   final String? batiment;
+  // Pour les techniciens uniquement
+  final String? specialite;
+  // Pour les agents de sécurité
+  final String? statut;
 
   User({
     required this.id,
@@ -21,10 +25,11 @@ class User {
     this.residentId,
     this.numeroAppartement,
     this.batiment,
+    this.specialite,
+    this.statut,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
-    // Fonction utilitaire pour convertir en int de façon sécurisée
     int toInt(dynamic value) {
       if (value == null) return 0;
       if (value is int) return value;
@@ -43,6 +48,8 @@ class User {
       residentId: toInt(json['resident_id']),
       numeroAppartement: json['numero_appartement'],
       batiment: json['batiment'],
+      specialite: json['specialite'],
+      statut: json['statut'],
     );
   }
 }

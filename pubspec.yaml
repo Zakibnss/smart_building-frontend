@@ -22,7 +22,7 @@ flutter:
   
   # Notez l'indentation correcte (2 espaces) pour la section assets
   assets:
-    - assets/images/
+    - assets/images
     - assets/images/building.png
     - assets/images/logo.png
     
