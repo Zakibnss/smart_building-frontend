@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import 'profile/profile_screen.dart';
+import 'reclamations/reclamations_list_screen.dart';
+import 'reclamations/create_reclamation_screen.dart';
+import 'colis/colis_screen.dart';
+import 'services/services_screen.dart';
+import 'parking/parking_screen.dart';
+import 'smartmailbox/smartmailbox_screen.dart';
 
 class ResidentDashboard extends StatefulWidget {
   final User user;
@@ -17,11 +24,15 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
   final Color _bleuFonce = Color(0xFF0D1F3C);
   final Color _bleuMoyen = Color(0xFF1A3A6B);
   final Color _vertMoyen = Color(0xFF4CAF50);
+  final Color _vertClair = Color(0xFFC8E6C9);
+  final Color _orangeClair = Color(0xFFFFF3E0);
+  final Color _bleuClair = Color(0xFFE3F2FD);
+  final Color _violetClair = Color(0xFFF3E5F5);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF0F6FF),
+      backgroundColor: Color(0xFFF8FAFE),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -29,33 +40,25 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
           children: [
             // Logo bâtiment
             Container(
-              width: 36,
-              height: 36,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(Icons.apartment, color: _bleuMoyen, size: 30),
-                  Positioned(
-                    bottom: 0,
-                    child: Container(
-                      width: 28,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [_vertMoyen, _bleuMoyen]),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ),
-                  ),
-                ],
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [_bleuMoyen, _vertMoyen],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Icon(Icons.apartment, color: Colors.white, size: 24),
             ),
-            SizedBox(width: 8),
+            SizedBox(width: 12),
             Text(
               'ESPACE RÉSIDENT',
               style: TextStyle(
                 color: _bleuFonce,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 18,
                 letterSpacing: 0.5,
               ),
             ),
@@ -65,18 +68,18 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
           // Icône profil
           IconButton(
             icon: CircleAvatar(
-              radius: 14,
+              radius: 16,
               backgroundColor: _bleuMoyen.withOpacity(0.15),
               child: Icon(Icons.person, color: _bleuMoyen, size: 18),
             ),
-            onPressed: () => _showProfileDialog(context),
+            onPressed: () => _navigateToProfile(context),
           ),
           // Icône cloche avec badge vert
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: Icon(Icons.notifications, color: _vertMoyen, size: 26),
+                icon: Icon(Icons.notifications_outlined, color: _bleuMoyen, size: 26),
                 onPressed: () => _showNotificationsSheet(context),
               ),
               Positioned(
@@ -102,47 +105,88 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
           children: [
             SizedBox(height: 12),
 
-            // ── Carte de bienvenue ──────────────────────────────────
+            // ── Carte de bienvenue améliorée ─────────────────────────
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: [Colors.white, Color(0xFFF5F9FF)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.07),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: Offset(0, 5),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  // Avatar circulaire avec fond vert/bleu
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Color(0xFFDFF0FF),
-                    child: Icon(Icons.person, color: _bleuMoyen, size: 32),
-                  ),
-                  SizedBox(width: 14),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bienvenue ${widget.user.nom}',
+                  // Avatar avec dégradé
+                  Container(
+                    width: 70,
+                    height: 70,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [_bleuMoyen, _vertMoyen],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.user.nom[0].toUpperCase(),
                         style: TextStyle(
-                          fontSize: 17,
+                          color: Colors.white,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Appartement ${widget.user.numeroAppartement ?? 'A101'}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                      ),
-                    ],
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Bienvenue 👋',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        Text(
+                          widget.user.nom,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: _bleuFonce,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _bleuClair,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Appartement ${widget.user.numeroAppartement ?? 'A101'} • Bâtiment ${widget.user.batiment ?? 'A'}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _bleuMoyen,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -150,61 +194,67 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
 
             SizedBox(height: 20),
 
-            // ── Grille 2×3 des menus ───────────────────────────────
+            // ── Grille 2×3 des menus améliorée ──────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
+                      Expanded(child: _buildMenuCardEnhanced(
                         icon: Icons.campaign,
-                        title: 'Réclamations',
-                        onTap: () => Navigator.pushNamed(context, '/reclamations'),
+                        title: 'Faire Réclamation',
+                        color: Colors.orange,
+                        bgColor: _orangeClair,
+                        onTap: () => _navigateToReclamations(context),
                       )),
                       SizedBox(width: 14),
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
-                        icon: Icons.notifications_active,
-                        title: 'Notifications',
-                        onTap: () => _showNotificationsSheet(context),
+                      Expanded(child: _buildMenuCardEnhanced(
+                        icon: Icons.mail,
+                        title: 'Smart Mailbox',
+                        color: Colors.purple,
+                        bgColor: _violetClair,
+                        onTap: () => _navigateToSmartMailbox(context),
                       )),
                     ],
                   ),
                   SizedBox(height: 14),
                   Row(
                     children: [
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
+                      Expanded(child: _buildMenuCardEnhanced(
                         icon: Icons.inventory_2,
-                        title: 'Mes Colis',
-                        onTap: () => Navigator.pushNamed(context, '/colis'),
+                        title: 'Suivre Colis',
+                        color: Color(0xFFB07D3A),
+                        bgColor: Color(0xFFFFF8E1),
+                        onTap: () => _navigateToColis(context),
                       )),
                       SizedBox(width: 14),
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
+                      Expanded(child: _buildMenuCardEnhanced(
                         icon: Icons.build,
                         title: 'Services',
-                        onTap: () => Navigator.pushNamed(context, '/services'),
+                        color: Colors.blue,
+                        bgColor: _bleuClair,
+                        onTap: () => _navigateToServices(context),
                       )),
                     ],
                   ),
                   SizedBox(height: 14),
                   Row(
                     children: [
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
+                      Expanded(child: _buildMenuCardEnhanced(
                         icon: Icons.local_parking,
                         title: 'Parking',
-                        onTap: () => Navigator.pushNamed(context, '/parking'),
+                        color: Colors.green,
+                        bgColor: _vertClair,
+                        onTap: () => _navigateToParking(context),
                       )),
                       SizedBox(width: 14),
-                      Expanded(child: _buildMenuCard(
-                        imagePath: null,
-                        icon: Icons.mail_outline,
-                        title: 'Smart Mailbox',
-                        onTap: () => Navigator.pushNamed(context, '/smartmailbox'),
+                      Expanded(child: _buildMenuCardEnhanced(
+                        icon: Icons.person,
+                        title: 'Mon Profil',
+                        color: _bleuMoyen,
+                        bgColor: _bleuClair,
+                        onTap: () => _navigateToProfile(context),
                       )),
                     ],
                   ),
@@ -214,39 +264,67 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
 
             SizedBox(height: 20),
 
-            // ── Dernières notifications ────────────────────────────
+            // ── Dernières notifications améliorées ───────────────────
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
-              padding: EdgeInsets.all(14),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
+                    blurRadius: 15,
+                    offset: Offset(0, 5),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Dernières notifications:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '📬 Dernières notifications',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: _bleuFonce,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => _showNotificationsSheet(context),
+                        child: Text(
+                          'Voir tout',
+                          style: TextStyle(color: _bleuMoyen, fontSize: 12),
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: 8),
-                  _buildNotifRow(Icons.inventory_2, Color(0xFFB07D3A), 'Colis arrivé - Il y a 2h'),
-                  SizedBox(height: 6),
-                  _buildNotifRow(Icons.check_circle, _vertMoyen, 'Réclamation résolue - Hier'),
+                  _buildNotifCard(
+                    Icons.inventory_2,
+                    Color(0xFFB07D3A),
+                    'Colis arrivé',
+                    'Votre colis COL123 est disponible',
+                    'Il y a 2h',
+                  ),
+                  SizedBox(height: 8),
+                  _buildNotifCard(
+                    Icons.check_circle,
+                    _vertMoyen,
+                    'Réclamation résolue',
+                    'Votre réclamation #123 a été traitée',
+                    'Hier',
+                  ),
                 ],
               ),
             ),
 
-            SizedBox(height: 16),
+            SizedBox(height: 20),
 
-            // ── Bouton LOG OUT ─────────────────────────────────────
+            // ── Bouton Déconnexion ─────────────────────────────────
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Align(
@@ -254,11 +332,11 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
                 child: ElevatedButton.icon(
                   onPressed: () => _showLogoutDialog(context),
                   icon: Icon(Icons.logout, size: 16),
-                  label: Text('LOG OUT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: Text('DÉCONNEXION', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _bleuFonce,
+                    backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
@@ -270,23 +348,28 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
         ),
       ),
 
-      // ── Bottom Navigation Bar ──────────────────────────────────────
+      // ── Bottom Navigation Bar améliorée ───────────────────────────
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10, offset: Offset(0, -2))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 10,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildBottomNavItem(Icons.dashboard, 'DASHBOARD', 0),
-                _buildBottomNavItem(Icons.build, 'SERVICES', 1),
-                _buildBottomNavItem(Icons.inventory_2, 'COLIS', 2),
-                _buildBottomNavItem(Icons.local_parking, 'PARKING', 3),
-                _buildBottomNavItem(Icons.mail_outline, 'MESSAGES', 4),
+                _buildBottomNavItem(Icons.home, 'Accueil', 0),
+                _buildBottomNavItem(Icons.inventory_2, 'Colis', 1),
+                _buildBottomNavItem(Icons.local_parking, 'Parking', 2),
+                _buildBottomNavItem(Icons.build, 'Services', 3),
               ],
             ),
           ),
@@ -295,51 +378,47 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  Widget _buildMenuCard({
-    String? imagePath,
+  Widget _buildMenuCardEnhanced({
     required IconData icon,
     required String title,
+    required Color color,
+    required Color bgColor,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 110,
+        height: 120,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 8,
-              offset: Offset(0, 3),
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icône colorée illustrée style cartoon
             Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: _getIconBgColor(title),
+                color: bgColor,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                size: 30,
-                color: _getIconColor(title),
-              ),
+              child: Icon(icon, color: color, size: 28),
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 8),
             Text(
               title,
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: _bleuFonce,
               ),
               textAlign: TextAlign.center,
             ),
@@ -349,50 +428,75 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  Color _getIconBgColor(String title) {
-    switch (title) {
-      case 'Réclamations': return Color(0xFFE8F5E9);
-      case 'Notifications': return Color(0xFFFFF3E0);
-      case 'Mes Colis': return Color(0xFFFFF8E1);
-      case 'Services': return Color(0xFFE3F2FD);
-      case 'Parking': return Color(0xFFE8F5E9);
-      case 'Smart Mailbox': return Color(0xFFE3F2FD);
-      default: return Color(0xFFEEEEEE);
-    }
-  }
-
-  Color _getIconColor(String title) {
-    switch (title) {
-      case 'Réclamations': return Color(0xFF43A047);
-      case 'Notifications': return Color(0xFFFF8F00);
-      case 'Mes Colis': return Color(0xFFB07D3A);
-      case 'Services': return Color(0xFF1565C0);
-      case 'Parking': return Color(0xFF2E7D32);
-      case 'Smart Mailbox': return Color(0xFF1565C0);
-      default: return Colors.grey;
-    }
-  }
-
-  Widget _buildNotifRow(IconData icon, Color color, String text) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        SizedBox(width: 8),
-        Text(text, style: TextStyle(fontSize: 13, color: Colors.black87)),
-      ],
+  Widget _buildNotifCard(IconData icon, Color color, String title, String subtitle, String time) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: _bleuFonce,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildBottomNavItem(IconData icon, String label, int index) {
-    final bool selected = _selectedBottomIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _selectedBottomIndex = index);
-        switch (index) {
-          case 1: Navigator.pushNamed(context, '/services'); break;
-          case 2: Navigator.pushNamed(context, '/colis'); break;
-          case 3: Navigator.pushNamed(context, '/parking'); break;
-          case 4: Navigator.pushNamed(context, '/smartmailbox'); break;
+  final bool selected = _selectedBottomIndex == index;
+  return GestureDetector(
+    onTap: () {
+      setState(() => _selectedBottomIndex = index);
+      switch (index) {
+        case 0: // Accueil
+          break;
+        case 1: 
+          Navigator.pushNamed(context, '/colis', arguments: widget.user);
+          break;
+        case 2: 
+          Navigator.pushNamed(context, '/parking', arguments: widget.user);
+          break;
+        case 3: 
+          Navigator.pushNamed(context, '/services', arguments: widget.user);
+          break;
         }
       },
       child: Column(
@@ -400,15 +504,15 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
         children: [
           Icon(
             icon,
-            color: selected ? _bleuFonce : Colors.grey,
-            size: 22,
+            color: selected ? _bleuMoyen : Colors.grey,
+            size: 24,
           ),
           SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              fontSize: 9,
-              color: selected ? _bleuFonce : Colors.grey,
+              fontSize: 11,
+              color: selected ? _bleuMoyen : Colors.grey,
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -417,7 +521,69 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  // ── Dialogues ────────────────────────────────────────────────────
+  // ── Navigation ──────────────────────────────────────────────────
+
+  void _navigateToProfile(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(user: widget.user),
+      ),
+    );
+  }
+
+  void _navigateToReclamations(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ReclamationsListScreen(user: widget.user),
+      ),
+    );
+  }
+
+  void _navigateToCreateReclamation(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateReclamationScreen(user: widget.user),
+      ),
+    );
+  }
+
+  void _navigateToSmartMailbox(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SmartMailboxScreen(user: widget.user),
+      ),
+    );
+  }
+
+  void _navigateToColis(BuildContext context) {
+  Navigator.pushNamed(
+    context, 
+    '/colis', 
+    arguments: widget.user,  // ← AJOUTER l'argument user
+  );
+}
+
+void _navigateToServices(BuildContext context) {
+  Navigator.pushNamed(
+    context, 
+    '/services', 
+    arguments: widget.user,  // ← AJOUTER l'argument user
+  );
+}
+
+void _navigateToParking(BuildContext context) {
+  Navigator.pushNamed(
+    context, 
+    '/parking', 
+    arguments: widget.user,  // ← AJOUTER l'argument user
+  );
+}
+
+  // ── Dialogues et Sheets ─────────────────────────────────────────
 
   void _showLogoutDialog(BuildContext context) {
     showDialog(
@@ -440,65 +606,6 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  void _showProfileDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Mon profil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: _bleuFonce,
-              child: Text(
-                widget.user.nom[0].toUpperCase(),
-                style: TextStyle(fontSize: 32, color: Colors.white),
-              ),
-            ),
-            SizedBox(height: 16),
-            _buildProfileRow(Icons.person, 'Nom', widget.user.nom),
-            Divider(),
-            _buildProfileRow(Icons.email, 'Email', widget.user.email),
-            Divider(),
-            _buildProfileRow(
-              Icons.apartment,
-              'Appartement',
-              widget.user.numeroAppartement ?? 'A101',
-            ),
-            Divider(),
-            _buildProfileRow(Icons.home_work, 'Bâtiment', widget.user.batiment ?? 'N/A'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Fermer'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfileRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: _bleuMoyen),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showNotificationsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -507,19 +614,23 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
       ),
       builder: (context) => Container(
         padding: EdgeInsets.all(20),
-        height: 380,
+        height: 400,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Notifications',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  'Notifications',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _bleuFonce),
+                ),
                 TextButton(
                   onPressed: () {},
-                  child: Text('Tout marquer comme lu',
-                      style: TextStyle(fontSize: 12)),
+                  child: Text(
+                    'Tout marquer comme lu',
+                    style: TextStyle(fontSize: 12, color: _bleuMoyen),
+                  ),
                 ),
               ],
             ),
@@ -527,27 +638,27 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
             Expanded(
               child: ListView(
                 children: [
-                  _buildNotifTile(
+                  _buildNotificationItem(
                     Icons.inventory_2,
                     Color(0xFFB07D3A),
                     'Colis arrivé',
-                    'Votre colis COL123 est disponible',
+                    'Votre colis COL123 est disponible dans la smart mailbox',
                     'Il y a 2h',
                     false,
                   ),
-                  _buildNotifTile(
+                  _buildNotificationItem(
                     Icons.check_circle,
                     _vertMoyen,
                     'Réclamation résolue',
-                    'Votre réclamation #123 a été résolue',
+                    'Votre réclamation #123 concernant l\'électricité a été résolue',
                     'Hier',
                     false,
                   ),
-                  _buildNotifTile(
+                  _buildNotificationItem(
                     Icons.local_parking,
                     _bleuMoyen,
                     'Rappel parking',
-                    'Votre accès parking expire dans 3 jours',
+                    'Votre abonnement parking expire dans 3 jours',
                     'Il y a 2j',
                     true,
                   ),
@@ -560,7 +671,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     );
   }
 
-  Widget _buildNotifTile(
+  Widget _buildNotificationItem(
     IconData icon,
     Color color,
     String title,
@@ -568,22 +679,59 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
     String time,
     bool read,
   ) {
-    return ListTile(
-      contentPadding: EdgeInsets.symmetric(vertical: 2),
-      leading: CircleAvatar(
-        radius: 18,
-        backgroundColor: color.withOpacity(0.15),
-        child: Icon(icon, color: color, size: 18),
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: read ? Colors.grey[50] : color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontWeight: read ? FontWeight.normal : FontWeight.bold,
-          fontSize: 14,
-        ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontWeight: read ? FontWeight.normal : FontWeight.bold,
+                    fontSize: 14,
+                    color: _bleuFonce,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          ),
+          if (!read)
+            Container(
+              margin: EdgeInsets.only(left: 8),
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: color,
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
       ),
-      subtitle: Text(subtitle, style: TextStyle(fontSize: 12)),
-      trailing: Text(time, style: TextStyle(color: Colors.grey, fontSize: 11)),
     );
   }
 }

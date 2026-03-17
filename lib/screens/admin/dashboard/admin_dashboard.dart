@@ -4,6 +4,7 @@ import '../users_management/residents/residents_list_screen.dart';
 import '../users_management/security_agents/security_agents_list_screen.dart';
 import '../users_management/service_agents/service_agents_list_screen.dart';
 import '../users_management/technicians/technicians_list_screen.dart';
+import '../../parking/parking_management_screen.dart'; // Importer la page parking
 
 class AdminDashboard extends StatefulWidget {
   final String userName;
@@ -29,19 +30,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // Activités récentes dynamiques
   List<Map<String, dynamic>> _recentActivities = [];
   
-  // Palette de couleurs selon les spécifications
-  final Color primaryBlue = Color(0xFF1E3A5F);  // Bleu foncé (sidebar)
-  final Color mediumBlue = Color(0xFF2F6F8F);   // Bleu moyen (header)
-  final Color lightBlue = Color(0xFF5FA8C5);    // Bleu clair (accents)
-  final Color lightGreen = Color(0xFF7BBF9A);   // Vert clair (accents secondaires)
-  final Color lightGray = Color(0xFF9AA4A6);    // Gris clair (textes secondaires)
-  final Color darkGray = Color(0xFF4A4A4A);     // Gris foncé (textes)
+  // Palette de couleurs
+  final Color primaryBlue = const Color(0xFF1E3A5F);
+  final Color mediumBlue = const Color(0xFF2F6F8F);
+  final Color lightBlue = const Color(0xFF5FA8C5);
+  final Color lightGreen = const Color(0xFF7BBF9A);
+  final Color lightGray = const Color(0xFF9AA4A6);
+  final Color darkGray = const Color(0xFF4A4A4A);
   
   // Gradient de fond
-  final LinearGradient backgroundGradient = LinearGradient(
+  final LinearGradient backgroundGradient = const LinearGradient(
     colors: [
-      Color(0xFFE6F0F4), // Bleu très clair
-      Color(0xFFE9F2E7), // Vert très clair
+      Color(0xFFE6F0F4),
+      Color(0xFFE9F2E7),
     ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -117,7 +118,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(color: primaryBlue),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text('Chargement des données...', style: TextStyle(color: darkGray)),
           ],
         ),
@@ -127,10 +128,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
     if (_selectedIndex == 0) {
       return _buildDashboardContent();
     } else if (_selectedIndex == 1) {
-      return _buildUserManagementMenu();
+      return _buildUserManagementMenu(); // Menu de gestion des utilisateurs
     } else if (_selectedIndex == 2) {
-      return Center(child: Text('Page Réclamations'));
+      return ParkingManagementScreen(); // Page de gestion du parking
     } else if (_selectedIndex == 3) {
+      return Center(child: Text('Page Réclamations'));
+    } else if (_selectedIndex == 4) {
       return Center(child: Text('Page Statistiques'));
     }
     return _buildDashboardContent();
@@ -139,7 +142,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // Menu principal de gestion des utilisateurs
   Widget _buildUserManagementMenu() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: backgroundGradient,
       ),
@@ -155,7 +158,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               letterSpacing: 1.2,
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Expanded(
             child: GridView.count(
               crossAxisCount: 2,
@@ -212,15 +215,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   void _showAgentSubMenu() {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
       builder: (context) => Container(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         height: 280,
         decoration: BoxDecoration(
           gradient: backgroundGradient,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,7 +236,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 color: primaryBlue,
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildAgentTile(
               icon: Icons.security,
               color: lightBlue,
@@ -241,7 +244,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               subtitle: 'Gérer les agents de sécurité',
               screen: SecurityAgentsListScreen(),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             _buildAgentTile(
               icon: Icons.build,
               color: lightGreen,
@@ -264,7 +267,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }) {
     return ListTile(
       leading: Container(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
@@ -315,7 +318,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             BoxShadow(
               color: color.withOpacity(0.2),
               blurRadius: 15,
-              offset: Offset(0, 8),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -323,14 +326,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 50),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Text(
               title,
               style: TextStyle(
@@ -339,7 +342,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 color: color,
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               '$count',
               style: TextStyle(
@@ -376,7 +379,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         setState(() {
           _selectedIndex = index;
         });
-        Navigator.pop(context); // Fermer le drawer après sélection
+        Navigator.pop(context);
       },
     );
   }
@@ -390,7 +393,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           // En-tête du drawer
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(vertical: 40, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [primaryBlue, mediumBlue],
@@ -412,19 +415,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 ),
-                SizedBox(height: 12),
+                const SizedBox(height: 12),
                 Text(
                   widget.userName,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
+                const SizedBox(height: 4),
+                const Text(
                   'Administrateur',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
@@ -447,41 +450,46 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   index: 1,
                 ),
                 _buildSideMenuItem(
+                  icon: Icons.local_parking,
+                  title: 'Gestion parking',
+                  index: 2,
+                ),
+                _buildSideMenuItem(
                   icon: Icons.report_problem_outlined,
                   title: 'Réclamations',
-                  index: 2,
+                  index: 3,
                 ),
                 _buildSideMenuItem(
                   icon: Icons.bar_chart,
                   title: 'Statistiques',
-                  index: 3,
+                  index: 4,
                 ),
               ],
             ),
           ),
           // Bouton déconnexion
           Container(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: ElevatedButton.icon(
               onPressed: _showLogoutDialog,
-              icon: Icon(Icons.logout, color: Colors.white),
-              label: Text('Déconnexion', style: TextStyle(color: Colors.white)),
+              icon: const Icon(Icons.logout, color: Colors.white),
+              label: const Text('Déconnexion', style: TextStyle(color: Colors.white)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                minimumSize: Size(double.infinity, 50),
+                minimumSize: const Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
           ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
-  // Fonction de déconnexion améliorée
+  // Fonction de déconnexion
   Future<void> _logout() async {
     try {
       await ApiService.logout();
@@ -524,9 +532,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: Text(
+            child: const Text(
               'Déconnecter',
               style: TextStyle(fontSize: 16, color: Colors.white),
             ),
@@ -548,8 +556,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ? 'ADMINISTRATION' 
               : (_selectedIndex == 1 
                   ? 'Gestion des utilisateurs' 
-                  : (_selectedIndex == 2 ? 'Réclamations' : 'Statistiques')),
-          style: TextStyle(
+                  : (_selectedIndex == 2 
+                      ? 'Gestion parking' 
+                      : (_selectedIndex == 3 ? 'Réclamations' : 'Statistiques'))),
+          style: const TextStyle(
             fontWeight: FontWeight.bold,
             letterSpacing: 1.5,
             fontSize: 20,
@@ -560,7 +570,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         leading: Builder(
           builder: (BuildContext context) {
             return IconButton(
-              icon: Icon(Icons.menu, color: Colors.white, size: 28),
+              icon: const Icon(Icons.menu, color: Colors.white, size: 28),
               onPressed: () {
                 Scaffold.of(context).openDrawer();
               },
@@ -571,7 +581,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Stack(
             children: [
               IconButton(
-                icon: Icon(Icons.notifications_outlined, color: Colors.white, size: 28),
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 28),
                 onPressed: () {},
               ),
               Positioned(
@@ -590,7 +600,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
           Padding(
-            padding: EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 16),
             child: CircleAvatar(
               radius: 20,
               backgroundColor: Colors.white24,
@@ -696,7 +706,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             errorBuilder: (context, error, stackTrace) {
                               return Container(
                                 color: Colors.white.withOpacity(0.2),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.apartment,
                                   size: 100,
                                   color: Colors.white,
@@ -719,18 +729,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     children: [
                       Text(
                         'Bonjour, ${widget.userName}!',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          shadows: [Shadow(color: Colors.black38, blurRadius: 6)],
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
+                      const SizedBox(height: 4),
+                      const Text(
                         'Voici un résumé du complexe',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white,
                           fontSize: 16,
                         ),
                       ),
@@ -743,7 +752,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
           // Cartes statistiques
           Padding(
-            padding: EdgeInsets.all(20),
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 Row(
@@ -754,22 +763,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         value: '$_residents',
                         icon: Icons.people,
                         accentColor: lightBlue,
-                        onTap: () {},
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
                         title: 'Agents',
                         value: '$_agents',
                         icon: Icons.security,
                         accentColor: lightGreen,
-                        onTap: () {},
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -778,22 +785,20 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         value: '$_reclamations',
                         icon: Icons.report_problem,
                         accentColor: Colors.orange,
-                        onTap: () {},
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
                         title: 'Missions',
                         value: '$_missions',
                         icon: Icons.assignment,
                         accentColor: mediumBlue,
-                        onTap: () {},
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -802,24 +807,22 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         value: '$_parking%',
                         icon: Icons.local_parking,
                         accentColor: primaryBlue,
-                        onTap: () {},
                       ),
                     ),
-                    SizedBox(width: 16),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _buildStatCard(
                         title: 'Techniciens',
                         value: '$_technicians',
                         icon: Icons.handyman,
                         accentColor: lightBlue,
-                        onTap: () {},
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                // Activité récente DYNAMIQUE
+                // Activité récente
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -829,7 +832,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       BoxShadow(
                         color: lightGray.withOpacity(0.2),
                         blurRadius: 15,
-                        offset: Offset(0, 5),
+                        offset: const Offset(0, 5),
                       ),
                     ],
                   ),
@@ -839,16 +842,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       // Gradient header bar
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [primaryBlue, lightGreen],
                             begin: Alignment.centerLeft,
                             end: Alignment.centerRight,
                           ),
-                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                         ),
-                        child: Text(
+                        child: const Text(
                           'ACTIVITÉ RÉCENTE',
                           style: TextStyle(
                             fontSize: 18,
@@ -859,11 +862,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         ),
                       ),
                       Padding(
-                        padding: EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: _recentActivities.isEmpty
                             ? Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(20),
+                                  padding: const EdgeInsets.all(20),
                                   child: Text(
                                     'Aucune activité récente',
                                     style: TextStyle(color: lightGray),
@@ -902,59 +905,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required String value,
     required IconData icon,
     required Color accentColor,
-    VoidCallback? onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withOpacity(0.2),
-              blurRadius: 15,
-              offset: Offset(0, 5),
-            ),
-          ],
-          border: Border(left: BorderSide(color: accentColor, width: 5)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: darkGray,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: accentColor.withOpacity(0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border(left: BorderSide(color: accentColor, width: 5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: darkGray,
                 ),
-                SizedBox(height: 8),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: accentColor,
-                  ),
-                ),
-              ],
-            ),
-            Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: accentColor, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
+            child: Icon(icon, color: accentColor, size: 32),
+          ),
+        ],
       ),
     );
   }
@@ -967,18 +966,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
     bool isLast = false,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: iconColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 20, color: iconColor),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -991,7 +990,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     color: darkGray,
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text(
                   time,
                   style: TextStyle(

@@ -9,24 +9,22 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
+  http: ^1.2.0
   shared_preferences: ^2.2.0
+  provider: ^6.1.1
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
-  
-  # Notez l'indentation correcte (2 espaces) pour la section assets
+
+  # IMPORTANT: L'INDENTATION EST CRUCIALE!
+  # Les tirets doivent être alignés avec 'assets:'
   assets:
-    - assets/images
-    - assets/images/building.png
+    - assets/images/
     - assets/images/logo.png
-    
-  # fonts:
-  #   - family: Roboto
-  #     fonts:
-  #       - asset: assets/fonts/Roboto-Regular.ttf
+    - assets/images/building.png
