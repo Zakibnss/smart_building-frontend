@@ -52,4 +52,6 @@ class User {
       statut: json['statut'],
     );
   }
+
+  String? get adresse => null;
 }

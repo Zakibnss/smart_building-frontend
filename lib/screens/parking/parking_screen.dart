@@ -169,37 +169,7 @@ class _ParkingScreenState extends State<ParkingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Statistiques
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [_bleuMoyen, _vertMoyen],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatItem(
-                            '${_stats['disponibles'] ?? 0}',
-                            'Disponibles',
-                            Colors.white,
-                          ),
-                          _buildStatItem(
-                            '${_stats['total_resident'] ?? 0}',
-                            'Places',
-                            Colors.white70,
-                          ),
-                          _buildStatItem(
-                            '${_stats['occupees'] ?? 0}',
-                            'Occupées',
-                            Colors.white70,
-                          ),
-                        ],
-                      ),
-                    ),
+                   
 
                     const SizedBox(height: 20),
 

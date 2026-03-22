@@ -8,8 +8,9 @@ import 'screens/reclamations/create_reclamation_screen.dart';
 import 'screens/colis/colis_screen.dart';
 import 'screens/parking/parking_screen.dart';
 import 'screens/services/services_screen.dart';
-import 'screens/services/service_history_screen.dart'; // ⚠️ IMPORTANT: Ajoutez cet import
+import 'screens/services/service_history_screen.dart';
 import 'screens/smartmailbox/smartmailbox_screen.dart';
+import 'screens/security_dashboard.dart'; // ⚠️ IMPORT CORRIGÉ
 import 'models/user.dart';
 
 void main() {
@@ -31,6 +32,8 @@ class MyApp extends StatelessWidget {
       initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
+        
+        // Routes Admin
         '/admin': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is User) {
@@ -38,6 +41,8 @@ class MyApp extends StatelessWidget {
           }
           return const AdminDashboard(userName: 'Admin');
         },
+        
+        // Routes Résident
         '/resident': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is User) {
@@ -87,7 +92,6 @@ class MyApp extends StatelessWidget {
           }
           return const LoginScreen();
         },
-        // ⚠️ AJOUTEZ CETTE ROUTE CI-DESSOUS :
         '/service/history': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           if (args is User) {
@@ -102,6 +106,54 @@ class MyApp extends StatelessWidget {
           }
           return const LoginScreen();
         },
+        
+        // ⚠️ ROUTE POUR AGENT DE SÉCURITÉ ⚠️
+        '/security': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is User) {
+            return SecurityDashboard(user: args);
+          }
+          return const LoginScreen();
+        },
+      },
+      
+      // Gestion des routes non trouvées
+      onGenerateRoute: (settings) {
+        // Si la route est '/security' mais avec un argument manquant
+        if (settings.name == '/security' && settings.arguments == null) {
+          return MaterialPageRoute(
+            builder: (context) => const LoginScreen(),
+          );
+        }
+        return null;
+      },
+      
+      // Page d'erreur pour les routes non trouvées
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 80, color: Colors.red),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Page non trouvée',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  Text('Route: ${settings.name}'),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                    child: const Text('Retour à l\'accueil'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
       },
     );
   }

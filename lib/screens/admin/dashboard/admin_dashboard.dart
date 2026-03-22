@@ -5,6 +5,7 @@ import '../users_management/security_agents/security_agents_list_screen.dart';
 import '../users_management/service_agents/service_agents_list_screen.dart';
 import '../users_management/technicians/technicians_list_screen.dart';
 import '../../parking/parking_management_screen.dart'; // Importer la page parking
+import '../../reclamations/reclamations_management_screen.dart';
 
 class AdminDashboard extends StatefulWidget {
   final String userName;
@@ -132,7 +133,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     } else if (_selectedIndex == 2) {
       return ParkingManagementScreen(); // Page de gestion du parking
     } else if (_selectedIndex == 3) {
-      return Center(child: Text('Page Réclamations'));
+      return const ReclamationsManagementScreen();;
     } else if (_selectedIndex == 4) {
       return Center(child: Text('Page Statistiques'));
     }
