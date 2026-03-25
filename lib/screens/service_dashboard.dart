@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user.dart';
+import '../services/api_service.dart';
 
 class ServiceDashboard extends StatefulWidget {
   final User user;
@@ -11,70 +12,240 @@ class ServiceDashboard extends StatefulWidget {
 }
 
 class _ServiceDashboardState extends State<ServiceDashboard> {
-  int _selectedBottomIndex = 0;
+  int _selectedTab = 0; // 0: Nouvelles demandes, 1: Mes missions
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  // Données
+  List<Map<String, dynamic>> _nouvellesDemandes = [];
+  List<Map<String, dynamic>> _mesMissions = [];
+  Map<String, dynamic> _stats = {};
+  
   bool _disponible = true;
 
-  final Color _bleuFonce = Color(0xFF0D1F3C);
-  final Color _bleuMoyen = Color(0xFF1A3A6B);
-  final Color _vertMoyen = Color(0xFF4CAF50);
-  final Color _teal = Color(0xFF009688);
+  final Color _bleuFonce = const Color(0xFF0D1F3C);
+  final Color _bleuMoyen = const Color(0xFF1A3A6B);
+  final Color _vertMoyen = const Color(0xFF4CAF50);
+  final Color _orange = const Color(0xFFFF9800);
+  final Color _rouge = const Color(0xFFF44336);
+  final Color _teal = const Color(0xFF009688);
+  final Color _violet = const Color(0xFF9C27B0);
 
-  // Nouvelles missions (en attente d'acceptation)
-  List<Map<String, dynamic>> _nouvellesMissions = [
-    {
-      'id': 'M001',
-      'type': 'Plomberie',
-      'lieu': 'A101',
-      'urgent': true,
-      'icon': Icons.build,
-    },
-    {
-      'id': 'M002',
-      'type': 'Électricité',
-      'lieu': 'B205',
-      'urgent': false,
-      'icon': Icons.bolt,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
-  // Missions acceptées
-  List<Map<String, dynamic>> _missionsAcceptees = [
-    {
-      'id': 'M003',
-      'type': 'Nettoyage',
-      'lieu': 'Hall',
-      'statut': 'En cours',
-      'icon': Icons.cleaning_services,
-    },
-    {
-      'id': 'M004',
-      'type': 'Réparation',
-      'lieu': 'C310',
-      'statut': 'Terminé',
-      'icon': Icons.bolt,
-    },
-  ];
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
 
-  // Stats
-  int _missionsMois = 24;
-  double _tauxAcceptation = 92;
-  int _satisfaction = 4; // sur 5
+    try {
+      // Charger les nouvelles demandes
+      final demandesResponse = await ApiService.getNouvellesDemandesService();
+      if (demandesResponse['success']) {
+        setState(() {
+          _nouvellesDemandes = List<Map<String, dynamic>>.from(demandesResponse['demandes'] ?? []);
+        });
+      }
+
+      // Charger mes missions
+      final missionsResponse = await ApiService.getMesMissionsService(widget.user.id);
+      if (missionsResponse['success']) {
+        setState(() {
+          _mesMissions = List<Map<String, dynamic>>.from(missionsResponse['missions'] ?? []);
+        });
+      }
+
+      // Charger les statistiques
+      final statsResponse = await ApiService.getServiceStats(widget.user.id);
+      if (statsResponse['success']) {
+        setState(() {
+          _stats = statsResponse['stats'] ?? {};
+        });
+      }
+
+      setState(() => _isLoading = false);
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Erreur: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _accepterMission(Map<String, dynamic> demande) async {
+    try {
+      final response = await ApiService.accepterMission(demande['id'], widget.user.id);
+      
+      if (response['success']) {
+        _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Mission acceptée avec succès'),
+            backgroundColor: _vertMoyen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Erreur'),
+            backgroundColor: _rouge,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: _rouge,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _refuserMission(Map<String, dynamic> demande) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Refuser la mission'),
+        content: Text('Êtes-vous sûr de vouloir refuser cette mission ?\n\n${demande['type_service']} - ${demande['appartement']}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _rouge,
+            ),
+            child: const Text('Refuser'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final response = await ApiService.refuserMission(demande['id'], widget.user.id);
+      
+      if (response['success']) {
+        _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Mission refusée'),
+            backgroundColor: _orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Erreur'),
+            backgroundColor: _rouge,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: _rouge,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _updateMissionStatut(Map<String, dynamic> mission, String nouveauStatut) async {
+    try {
+      final response = await ApiService.updateMissionStatut(mission['id'], nouveauStatut);
+      
+      if (response['success']) {
+        _loadData();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Statut mis à jour: $nouveauStatut'),
+            backgroundColor: _vertMoyen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(response['message'] ?? 'Erreur'),
+            backgroundColor: _rouge,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: _rouge,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Future<void> _updateDisponibilite() async {
+    try {
+      final response = await ApiService.updateAgentDisponibilite(widget.user.id, _disponible);
+      if (response['success']) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_disponible ? 'Vous êtes maintenant disponible' : 'Vous êtes maintenant indisponible'),
+            backgroundColor: _vertMoyen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Erreur mise à jour disponibilité: $e');
+    }
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Déconnexion'),
+        content: const Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _rouge,
+            ),
+            child: const Text('Déconnexion'),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final totalMissions =
-        _nouvellesMissions.length + _missionsAcceptees.length;
-
     return Scaffold(
-      backgroundColor: Color(0xFFF0F6FF),
+      backgroundColor: const Color(0xFFF0F6FF),
       appBar: AppBar(
         backgroundColor: _bleuFonce,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.menu, color: Colors.white),
-          onPressed: () {},
-        ),
-        title: Text(
+        title: const Text(
           'AGENT SERVICE',
           style: TextStyle(
             color: Colors.white,
@@ -85,14 +256,14 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.person_outline, color: Colors.white),
+            icon: const Icon(Icons.person_outline, color: Colors.white),
             onPressed: () => _showProfileDialog(context),
           ),
           Stack(
             alignment: Alignment.center,
             children: [
               IconButton(
-                icon: Icon(Icons.notifications_outlined, color: Colors.white),
+                icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                 onPressed: () => _showNotificationsSheet(context),
               ),
               Positioned(
@@ -110,615 +281,545 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
               ),
             ],
           ),
-          SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout,
+            tooltip: 'Déconnexion',
+          ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(14),
-        child: Column(
-          children: [
-            // ── Carte agent ─────────────────────────────────────
-            _buildAgentCard(),
-
-            SizedBox(height: 14),
-
-            // ── Section MES MISSIONS ─────────────────────────────
-            _buildMissionsSection(totalMissions),
-
-            SizedBox(height: 14),
-
-            // ── Section STATISTIQUES ─────────────────────────────
-            _buildStatistiquesSection(),
-
-            SizedBox(height: 16),
-
-            // ── LOG OUT ──────────────────────────────────────────
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () => _showLogoutDialog(context),
-                icon: Icon(Icons.logout, size: 16),
-                label: Text('LOG OUT',
-                    style: TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _bleuFonce,
-                  foregroundColor: Colors.white,
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? _buildErrorState()
+              : Column(
+                  children: [
+                    // Onglets
+                    Container(
+                      color: Colors.white,
+                      child: Row(
+                        children: [
+                          _buildTab('Nouvelles demandes', 0, _nouvellesDemandes.length),
+                          _buildTab('Mes missions', 1, _mesMissions.length),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: _selectedTab == 0
+                          ? _buildNouvellesDemandesList()
+                          : _buildMesMissionsList(),
+                    ),
+                  ],
                 ),
+    );
+  }
+
+  Widget _buildTab(String title, int index, int count) {
+    bool isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTab = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected ? _vertMoyen : Colors.transparent,
+                width: 3,
               ),
             ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: isSelected ? _bleuFonce : Colors.grey,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              if (count > 0 && title == 'Nouvelles demandes')
+                Container(
+                  margin: const EdgeInsets.only(left: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _rouge,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-            SizedBox(height: 12),
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 80, color: Colors.red[300]),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: _loadData,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Réessayer'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _bleuFonce,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
           ],
         ),
       ),
-
-      // ── Bottom Nav ───────────────────────────────────────────────
-      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  // ── CARTE AGENT ──────────────────────────────────────────────────
-  Widget _buildAgentCard() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF1A5276), Color(0xFF2980B9)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
+  Widget _buildNouvellesDemandesList() {
+    if (_nouvellesDemandes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'Aucune nouvelle demande',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Les demandes de services apparaîtront ici',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
         ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _nouvellesDemandes.length,
+      itemBuilder: (context, index) {
+        final demande = _nouvellesDemandes[index];
+        return _buildDemandeCard(demande);
+      },
+    );
+  }
+
+  Widget _buildDemandeCard(Map<String, dynamic> demande) {
+    Color typeColor = _getServiceColor(demande['type_service']);
+    IconData typeIcon = _getServiceIcon(demande['type_service']);
+    bool estUrgent = demande['priorite'] == 'urgente';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 10,
-              offset: Offset(0, 4)),
-        ],
       ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            child: Icon(Icons.person, color: Colors.white, size: 34),
-          ),
-          SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // En-tête
+            Row(
               children: [
-                Text(
-                  'Agent: ${widget.user.nom}',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: typeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(typeIcon, color: typeColor, size: 24),
                 ),
-                SizedBox(height: 3),
-                Text(
-                  'Spécialité: Plomberie/Électricité',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-                SizedBox(height: 4),
-                // Toggle disponibilité
-                GestureDetector(
-                  onTap: () =>
-                      setState(() => _disponible = !_disponible),
-                  child: Row(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Disponible: ',
-                          style: TextStyle(
-                              color: Colors.white70, fontSize: 13)),
-                      Container(
-                        width: 12,
-                        height: 12,
-                        decoration: BoxDecoration(
-                          color: _disponible ? _vertMoyen : Colors.red,
-                          shape: BoxShape.circle,
+                      Text(
+                        demande['type_service'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(width: 5),
                       Text(
-                        _disponible ? 'Oui' : 'Non',
+                        'Appartement: ${demande['appartement']}',
                         style: TextStyle(
-                            color: _disponible
-                                ? Color(0xFF81C784)
-                                : Colors.red[300],
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13),
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                      SizedBox(width: 6),
-                      Icon(Icons.swap_horiz,
-                          color: Colors.white54, size: 14),
                     ],
                   ),
                 ),
+                if (estUrgent)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _rouge.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'URGENT',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── SECTION MISSIONS ──────────────────────────────────────────────
-  Widget _buildMissionsSection(int total) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // En-tête section
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: _bleuFonce,
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(16)),
+            
+            const SizedBox(height: 12),
+            
+            // Description
+            Text(
+              demande['description'],
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
-            child: Row(
+            
+            const SizedBox(height: 12),
+            
+            // Infos supplémentaires
+            Row(
               children: [
-                Icon(Icons.assignment, color: Colors.white, size: 20),
-                SizedBox(width: 8),
+                Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 4),
                 Text(
-                  'MES MISSIONS ($total)',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      letterSpacing: 0.5),
+                  _formatDate(demande['date_demande']),
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                ),
+                const SizedBox(width: 12),
+                Icon(Icons.access_time, size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  demande['heure_souhaitee'] ?? 'À convenir',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               ],
             ),
-          ),
-
-          // Nouvelles missions
-          Padding(
-            padding: EdgeInsets.fromLTRB(14, 14, 14, 4),
-            child: Text(
-              '[Nouvelles missions]',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.black87),
+            
+            const SizedBox(height: 16),
+            
+            // Boutons action
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _accepterMission(demande),
+                    icon: const Icon(Icons.check_circle, size: 18),
+                    label: const Text('Accepter'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _vertMoyen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _refuserMission(demande),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Refuser'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _rouge,
+                      side: BorderSide(color: _rouge),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-
-          if (_nouvellesMissions.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Text('Aucune nouvelle mission',
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-            )
-          else
-            ..._nouvellesMissions
-                .map((m) => _buildNouvelleMissionRow(m))
-                .toList(),
-
-          Divider(height: 1, color: Colors.grey.shade200),
-
-          // Missions acceptées
-          Padding(
-            padding: EdgeInsets.fromLTRB(14, 12, 14, 4),
-            child: Text(
-              '[Missions acceptées]',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.black87),
-            ),
-          ),
-
-          if (_missionsAcceptees.isEmpty)
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              child: Text('Aucune mission acceptée',
-                  style: TextStyle(color: Colors.grey, fontSize: 13)),
-            )
-          else
-            ..._missionsAcceptees
-                .map((m) => _buildAccepteeMissionRow(m))
-                .toList(),
-
-          SizedBox(height: 10),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNouvelleMissionRow(Map<String, dynamic> m) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(m['icon'] as IconData,
-                  color: _bleuMoyen, size: 16),
-              SizedBox(width: 6),
-              Text(
-                '${m['type']} - ${m['lieu']}',
-                style: TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-              if (m['urgent'] == true) ...[
-                SizedBox(width: 6),
+  Widget _buildMesMissionsList() {
+    if (_mesMissions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment_turned_in, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            const Text(
+              'Aucune mission en cours',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Les missions que vous acceptez apparaîtront ici',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _mesMissions.length,
+      itemBuilder: (context, index) {
+        final mission = _mesMissions[index];
+        return _buildMissionCard(mission);
+      },
+    );
+  }
+
+  Widget _buildMissionCard(Map<String, dynamic> mission) {
+    Color typeColor = _getServiceColor(mission['type_service']);
+    IconData typeIcon = _getServiceIcon(mission['type_service']);
+    Color statutColor = _getStatutColor(mission['statut']);
+    String statutText = _getStatutText(mission['statut']);
+    
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // En-tête
+            Row(
+              children: [
                 Container(
-                  padding:
-                      EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(6),
+                    color: typeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(typeIcon, color: typeColor, size: 24),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        mission['type_service'],
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Appartement: ${mission['appartement']}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statutColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    'urgent',
+                    statutText,
                     style: TextStyle(
-                        color: Colors.red,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ],
-          ),
-          SizedBox(height: 6),
-          Row(
-            children: [
-              // Bouton Accepter
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _accepterMission(m),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _teal,
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: Text('[Accepter]',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-              SizedBox(width: 8),
-              // Bouton Refuser
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () => _refuserMission(m),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: Text('[Refuser]',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAccepteeMissionRow(Map<String, dynamic> m) {
-    final bool enCours = m['statut'] == 'En cours';
-    final Color statutColor =
-        enCours ? Colors.orange : _vertMoyen;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      child: Row(
-        children: [
-          Icon(m['icon'] as IconData, color: _bleuMoyen, size: 16),
-          SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              '${m['type']} - ${m['lieu']}',
-              style:
-                  TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-            ),
-          ),
-          // Badge statut cliquable
-          GestureDetector(
-            onTap: () => _changerStatut(m),
-            child: Container(
-              padding:
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: statutColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: statutColor.withOpacity(0.4), width: 1),
-              ),
-              child: Text(
-                m['statut'],
-                style: TextStyle(
-                    color: statutColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── SECTION STATISTIQUES ──────────────────────────────────────────
-  Widget _buildStatistiquesSection() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 8,
-              offset: Offset(0, 2)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // En-tête
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: _bleuFonce,
-              borderRadius:
-                  BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.bar_chart, color: Colors.white, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  'STATISTIQUES',
-                  style: TextStyle(
-                      color: Colors.white,
+                      fontSize: 10,
+                      color: statutColor,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      letterSpacing: 0.5),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
+            
+            const SizedBox(height: 12),
+            
+            // Description
+            Text(
+              mission['description'],
+              style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Infos
+            Row(
               children: [
-                // Missions ce mois
-                _buildStatRow(
-                  icon: Icons.assignment_turned_in,
-                  label: 'Missions ce mois',
-                  value: '$_missionsMois',
-                  color: _bleuMoyen,
+                Icon(Icons.person, size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  mission['resident_nom'] ?? 'Résident',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
-                SizedBox(height: 10),
-                // Taux acceptation
-                _buildStatRow(
-                  icon: Icons.check_circle_outline,
-                  label: "Taux d'acceptation",
-                  value: '$_tauxAcceptation%',
-                  color: _vertMoyen,
-                ),
-                SizedBox(height: 10),
-                // Satisfaction étoiles
-                Row(
-                  children: [
-                    Icon(Icons.star_rate, color: Colors.orange, size: 20),
-                    SizedBox(width: 8),
-                    Text('Satisfaction: ',
-                        style: TextStyle(
-                            fontSize: 14, color: Colors.black87)),
-                    Row(
-                      children: List.generate(5, (i) {
-                        return GestureDetector(
-                          onTap: () =>
-                              setState(() => _satisfaction = i + 1),
-                          child: Icon(
-                            i < _satisfaction
-                                ? Icons.star
-                                : Icons.star_border,
-                            color: Colors.amber,
-                            size: 22,
-                          ),
-                        );
-                      }),
-                    ),
-                  ],
+                const SizedBox(width: 12),
+                Icon(Icons.phone, size: 12, color: Colors.grey[600]),
+                const SizedBox(width: 4),
+                Text(
+                  mission['telephone'] ?? 'N/A',
+                  style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatRow({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            '$label: ',
-            style: TextStyle(fontSize: 14, color: Colors.black87),
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color),
-        ),
-      ],
-    );
-  }
-
-  // ── BOTTOM NAV ────────────────────────────────────────────────────
-  Widget _buildBottomNav() {
-    final items = [
-      {'icon': Icons.dashboard, 'label': 'DASHBOARD'},
-      {'icon': Icons.build, 'label': 'SERVICES'},
-      {'icon': Icons.inventory_2, 'label': 'COLIS'},
-      {'icon': Icons.local_parking, 'label': 'PARKING'},
-      {'icon': Icons.mail_outline, 'label': 'MESSAGES'},
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 10,
-              offset: Offset(0, -2))
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(items.length, (i) {
-              final selected = _selectedBottomIndex == i;
-              return GestureDetector(
-                onTap: () =>
-                    setState(() => _selectedBottomIndex = i),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      items[i]['icon'] as IconData,
-                      color: selected ? _bleuFonce : Colors.grey,
-                      size: 22,
+            
+            const SizedBox(height: 16),
+            
+            // Boutons action selon statut
+            if (mission['statut'] == 'en_cours')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _updateMissionStatut(mission, 'termine'),
+                  icon: const Icon(Icons.check_circle, size: 18),
+                  label: const Text('Marquer comme terminé'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _vertMoyen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    SizedBox(height: 2),
-                    Text(
-                      items[i]['label'] as String,
-                      style: TextStyle(
-                        fontSize: 9,
-                        color: selected ? _bleuFonce : Colors.grey,
-                        fontWeight: selected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                  ),
+                ),
+              ),
+            
+            if (mission['statut'] == 'termine')
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: _vertMoyen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        mission['feedback'] ?? 'En attente de feedback du résident',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                       ),
                     ),
                   ],
                 ),
-              );
-            }),
-          ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  // ── ACTIONS ───────────────────────────────────────────────────────
-
-  void _accepterMission(Map<String, dynamic> m) {
-    setState(() {
-      _nouvellesMissions.remove(m);
-      _missionsAcceptees.insert(0, {
-        'id': m['id'],
-        'type': m['type'],
-        'lieu': m['lieu'],
-        'statut': 'En cours',
-        'icon': m['icon'],
-      });
-      _missionsMois++;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content:
-          Text('Mission ${m['type']} acceptée ✓'),
-      backgroundColor: _vertMoyen,
-    ));
+  Color _getServiceColor(String type) {
+    switch (type) {
+      case 'Plomberie':
+        return _teal;
+      case 'Électricité':
+        return Colors.orange;
+      case 'Nettoyage':
+        return _vertMoyen;
+      case 'Réparation':
+        return _violet;
+      case 'Sécurité':
+        return _bleuMoyen;
+      default:
+        return _bleuFonce;
+    }
   }
 
-  void _refuserMission(Map<String, dynamic> m) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Refuser la mission'),
-        content: Text(
-            'Confirmer le refus de la mission ${m['type']} - ${m['lieu']} ?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Annuler')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              setState(() => _nouvellesMissions.remove(m));
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Mission refusée'),
-                backgroundColor: Colors.red,
-              ));
-            },
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: Text('Refuser',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+  IconData _getServiceIcon(String type) {
+    switch (type) {
+      case 'Plomberie':
+        return Icons.plumbing;
+      case 'Électricité':
+        return Icons.electrical_services;
+      case 'Nettoyage':
+        return Icons.cleaning_services;
+      case 'Réparation':
+        return Icons.build;
+      case 'Sécurité':
+        return Icons.security;
+      default:
+        return Icons.build;
+    }
   }
 
-  void _changerStatut(Map<String, dynamic> m) {
-    final statuts = ['En cours', 'Terminé', 'En attente'];
-    final currentIndex = statuts.indexOf(m['statut']);
-    final nextStatut =
-        statuts[(currentIndex + 1) % statuts.length];
-    setState(() => m['statut'] = nextStatut);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Statut mis à jour: $nextStatut'),
-      backgroundColor: _bleuMoyen,
-      duration: Duration(seconds: 1),
-    ));
+  Color _getStatutColor(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return Colors.orange;
+      case 'en_cours':
+        return _bleuMoyen;
+      case 'termine':
+        return _vertMoyen;
+      default:
+        return Colors.grey;
+    }
   }
 
-  // ── DIALOGUES ─────────────────────────────────────────────────────
+  String _getStatutText(String statut) {
+    switch (statut) {
+      case 'en_attente':
+        return 'En attente';
+      case 'en_cours':
+        return 'En cours';
+      case 'termine':
+        return 'Terminé';
+      default:
+        return statut;
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
 
   void _showProfileDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Mon profil'),
+        title: const Text('Mon profil'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -726,24 +827,38 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
               radius: 36,
               backgroundColor: _bleuFonce,
               child: Text(widget.user.nom[0].toUpperCase(),
-                  style:
-                      TextStyle(fontSize: 32, color: Colors.white)),
+                  style: const TextStyle(fontSize: 32, color: Colors.white)),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _infoRow(Icons.person, 'Nom', widget.user.nom),
-            Divider(),
+            const Divider(),
             _infoRow(Icons.email, 'Email', widget.user.email),
-            Divider(),
+            const Divider(),
             _infoRow(Icons.build, 'Rôle', 'Agent Service'),
-            Divider(),
-            _infoRow(Icons.plumbing, 'Spécialité',
-                'Plomberie / Électricité'),
+            const Divider(),
+            Row(
+              children: [
+                Icon(Icons.toggle_on, color: _vertMoyen),
+                const SizedBox(width: 8),
+                const Text('Disponibilité: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                Switch(
+                  value: _disponible,
+                  onChanged: (value) {
+                    setState(() => _disponible = value);
+                    _updateDisponibilite();
+                  },
+                  activeColor: _vertMoyen,
+                ),
+                Text(_disponible ? 'Disponible' : 'Indisponible',
+                    style: TextStyle(color: _disponible ? _vertMoyen : _rouge)),
+              ],
+            ),
           ],
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Fermer')),
+              child: const Text('Fermer')),
         ],
       ),
     );
@@ -751,16 +866,15 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
 
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           Icon(icon, size: 16, color: _bleuMoyen),
-          SizedBox(width: 8),
-          Text('$label: ',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 13)),
+          const SizedBox(width: 8),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           Expanded(
-              child: Text(value, style: TextStyle(fontSize: 13))),
+            child: Text(value, style: const TextStyle(fontSize: 13)),
+          ),
         ],
       ),
     );
@@ -769,41 +883,49 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
   void _showNotificationsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: RoundedRectangleBorder(
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => Container(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         height: 340,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Notifications',
-                style: TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
+            const Text('Notifications',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
             Expanded(
-              child: ListView(
-                children: [
-                  _notifTile(
-                      Icons.assignment,
-                      _bleuMoyen,
-                      'Nouvelle mission assignée',
-                      'Plomberie urgente - A101',
-                      'Il y a 5min'),
-                  _notifTile(
-                      Icons.check_circle,
-                      _vertMoyen,
-                      'Mission terminée',
-                      'Réparation C310 validée',
-                      'Il y a 1h'),
-                  _notifTile(
-                      Icons.alarm,
-                      Colors.orange,
-                      'Rappel mission',
-                      'Électricité B205 - dans 30min',
-                      'Il y a 2h'),
-                ],
+              child: FutureBuilder(
+                future: ApiService.getNotificationsAgent(widget.user.id),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  
+                  if (snapshot.hasData && snapshot.data!['success'] == true) {
+                    final notifications = snapshot.data!['notifications'] as List? ?? [];
+                    
+                    if (notifications.isEmpty) {
+                      return const Center(child: Text('Aucune notification'));
+                    }
+                    
+                    return ListView.builder(
+                      itemCount: notifications.length,
+                      itemBuilder: (context, index) {
+                        final n = notifications[index];
+                        return _notifTile(
+                          Icons.notifications,
+                          _bleuMoyen,
+                          n['titre'] ?? 'Notification',
+                          n['contenu'] ?? '',
+                          n['date_creation'] ?? '',
+                        );
+                      },
+                    );
+                  }
+                  
+                  return const Center(child: Text('Erreur de chargement'));
+                },
               ),
             ),
           ],
@@ -812,46 +934,18 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
     );
   }
 
-  Widget _notifTile(IconData icon, Color color, String title,
-      String subtitle, String time) {
+  Widget _notifTile(IconData icon, Color color, String title, String subtitle, String time) {
     return ListTile(
-      contentPadding: EdgeInsets.symmetric(vertical: 2),
+      contentPadding: EdgeInsets.zero,
       leading: CircleAvatar(
         radius: 18,
         backgroundColor: color.withOpacity(0.15),
         child: Icon(icon, color: color, size: 18),
       ),
       title: Text(title,
-          style:
-              TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle:
-          Text(subtitle, style: TextStyle(fontSize: 12)),
-      trailing: Text(time,
-          style: TextStyle(color: Colors.grey, fontSize: 11)),
-    );
-  }
-
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Déconnexion'),
-        content:
-            Text('Êtes-vous sûr de vouloir vous déconnecter ?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Annuler')),
-          ElevatedButton(
-            onPressed: () =>
-                Navigator.pushReplacementNamed(context, '/login'),
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red),
-            child: Text('Déconnexion',
-                style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+      trailing: Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
     );
   }
 }

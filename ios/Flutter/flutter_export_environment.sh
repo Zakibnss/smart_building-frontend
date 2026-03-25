@@ -1,7 +1,7 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
 export "FLUTTER_ROOT=C:\Users\lenovo\flutter"
-export "FLUTTER_APPLICATION_PATH=C:\xampp\htdocs\smart-residence\frontend"
+export "FLUTTER_APPLICATION_PATH=C:\xampp\htdocs\smart-residence\smart_building-frontend"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"
