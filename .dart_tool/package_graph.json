@@ -7,6 +7,7 @@
       "name": "smart_residence",
       "version": "1.0.0+1",
       "dependencies": [
+        "fl_chart",
         "flutter",
         "flutter_animate",
         "http",
@@ -90,12 +91,45 @@
       ]
     },
     {
+      "name": "flutter_animate",
+      "version": "4.5.2",
+      "dependencies": [
+        "flutter",
+        "flutter_shaders"
+      ]
+    },
+    {
+      "name": "vibration",
+      "version": "1.9.0",
+      "dependencies": [
+        "flutter",
+        "vibration_platform_interface"
+      ]
+    },
+    {
+      "name": "mobile_scanner",
+      "version": "3.5.7",
+      "dependencies": [
+        "flutter",
+        "flutter_web_plugins",
+        "js"
+      ]
+    },
+    {
       "name": "qr_code_scanner",
       "version": "1.0.1",
       "dependencies": [
         "flutter",
         "flutter_web_plugins",
         "js"
+      ]
+    },
+    {
+      "name": "fl_chart",
+      "version": "0.68.0",
+      "dependencies": [
+        "equatable",
+        "flutter"
       ]
     },
     {
@@ -296,6 +330,30 @@
       ]
     },
     {
+      "name": "flutter_shaders",
+      "version": "0.1.3",
+      "dependencies": [
+        "flutter",
+        "vector_math"
+      ]
+    },
+    {
+      "name": "vibration_platform_interface",
+      "version": "0.0.3",
+      "dependencies": [
+        "device_info_plus",
+        "flutter",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "js",
+      "version": "0.6.7",
+      "dependencies": [
+        "meta"
+      ]
+    },
+    {
       "name": "flutter_web_plugins",
       "version": "0.0.0",
       "dependencies": [
@@ -428,6 +486,21 @@
       ]
     },
     {
+      "name": "device_info_plus",
+      "version": "11.5.0",
+      "dependencies": [
+        "device_info_plus_platform_interface",
+        "ffi",
+        "file",
+        "flutter",
+        "flutter_web_plugins",
+        "meta",
+        "web",
+        "win32",
+        "win32_registry"
+      ]
+    },
+    {
       "name": "vm_service",
       "version": "15.0.2",
       "dependencies": []
@@ -451,76 +524,19 @@
       ]
     },
     {
-      "name": "vibration",
-      "version": "1.9.0",
-      "dependencies": [
-        "flutter",
-        "vibration_platform_interface"
-      ]
-    },
-    {
-      "name": "flutter_animate",
-      "version": "4.5.2",
-      "dependencies": [
-        "flutter",
-        "flutter_shaders"
-      ]
-    },
-    {
-      "name": "flutter_shaders",
-      "version": "0.1.3",
-      "dependencies": [
-        "flutter",
-        "vector_math"
-      ]
-    },
-    {
-      "name": "vibration_platform_interface",
-      "version": "0.0.3",
-      "dependencies": [
-        "device_info_plus",
-        "flutter",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "js",
-      "version": "0.6.7",
-      "dependencies": [
-        "meta"
-      ]
-    },
-    {
-      "name": "mobile_scanner",
-      "version": "3.5.7",
-      "dependencies": [
-        "flutter",
-        "flutter_web_plugins",
-        "js"
-      ]
-    },
-    {
-      "name": "device_info_plus",
-      "version": "11.5.0",
-      "dependencies": [
-        "device_info_plus_platform_interface",
-        "ffi",
-        "file",
-        "flutter",
-        "flutter_web_plugins",
-        "meta",
-        "web",
-        "win32",
-        "win32_registry"
-      ]
-    },
-    {
       "name": "win32_registry",
       "version": "2.1.0",
       "dependencies": [
         "ffi",
         "meta",
         "win32"
+      ]
+    },
+    {
+      "name": "win32",
+      "version": "5.15.0",
+      "dependencies": [
+        "ffi"
       ]
     },
     {
@@ -533,10 +549,11 @@
       ]
     },
     {
-      "name": "win32",
-      "version": "5.15.0",
+      "name": "equatable",
+      "version": "2.0.8",
       "dependencies": [
-        "ffi"
+        "collection",
+        "meta"
       ]
     }
   ],

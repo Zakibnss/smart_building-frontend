@@ -6,6 +6,9 @@ import '../users_management/service_agents/service_agents_list_screen.dart';
 import '../users_management/technicians/technicians_list_screen.dart';
 import '../../parking/parking_management_screen.dart'; // Importer la page parking
 import '../../reclamations/reclamations_management_screen.dart';
+import '../../archive/archive_screen.dart';
+import '../../statistics/statistics_screen.dart';
+
 
 class AdminDashboard extends StatefulWidget {
   final String userName;
@@ -134,9 +137,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return ParkingManagementScreen(); // Page de gestion du parking
     } else if (_selectedIndex == 3) {
       return const ReclamationsManagementScreen();;
-    } else if (_selectedIndex == 4) {
-      return Center(child: Text('Page Statistiques'));
-    }
+    }  else if (_selectedIndex == 4) {
+  return const StatisticsScreen();
+}else if (_selectedIndex == 5) {
+  return const ArchiveScreen();
+}
     return _buildDashboardContent();
   }
 
@@ -465,6 +470,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   title: 'Statistiques',
                   index: 4,
                 ),
+                _buildSideMenuItem(
+  icon: Icons.archive_outlined,
+  title: 'Archive',
+  index: 5, // Nouvel index
+),
               ],
             ),
           ),

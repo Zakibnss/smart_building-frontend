@@ -652,91 +652,94 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
   }
 
   // ── SCANNER QR CODE ───────────────────────────────────────
-  void _showQRScanner() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Scanner QR Code',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: MobileScanner(
-                controller: _scannerController ??= MobileScannerController(),
-                onDetect: (capture) {
-                  final List<Barcode> barcodes = capture.barcodes;
-                  for (final barcode in barcodes) {
-                    if (barcode.rawValue != null) {
-                      _scannerController?.stop();
-                      Navigator.pop(context);
-                      _verifierCodeAcces(barcode.rawValue!);
-                      break;
-                    }
-                  }
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildScannerControl(
-                    icon: Icons.flash_on,
-                    label: 'Flash',
-                    onTap: () => _scannerController?.toggleTorch(),
-                  ),
-                  _buildScannerControl(
-                    icon: Icons.cameraswitch,
-                    label: 'Caméra',
-                    onTap: () => _scannerController?.switchCamera(),
-                  ),
-                  _buildScannerControl(
-                    icon: Icons.close,
-                    label: 'Fermer',
-                    onTap: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+ void _showQRScanner() {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      height: MediaQuery.of(context).size.height * 0.8,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-    );
-  }
+      child: Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Scanner QR Code',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: MobileScanner(
+              controller: _scannerController ??= MobileScannerController(
+                formats: [BarcodeFormat.qrCode],
+                detectionSpeed: DetectionSpeed.normal,
+              ),
+              onDetect: (capture) {
+                final List<Barcode> barcodes = capture.barcodes;
+                for (final barcode in barcodes) {
+                  if (barcode.rawValue != null && barcode.rawValue!.isNotEmpty) {
+                    _scannerController?.stop();
+                    Navigator.pop(context);
+                    _verifierCodeAcces(barcode.rawValue!);
+                    break;
+                  }
+                }
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildScannerControl(
+                  icon: Icons.flash_on,
+                  label: 'Flash',
+                  onTap: () => _scannerController?.toggleTorch(),
+                ),
+                _buildScannerControl(
+                  icon: Icons.cameraswitch,
+                  label: 'Caméra',
+                  onTap: () => _scannerController?.switchCamera(),
+                ),
+                _buildScannerControl(
+                  icon: Icons.close,
+                  label: 'Fermer',
+                  onTap: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
   Widget _buildScannerControl({
     required IconData icon,
@@ -769,41 +772,38 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
   }
 
   Future<void> _verifierCodeAcces(String code) async {
-    if (await Vibration.hasVibrator() ?? false) {
-      Vibration.vibrate(duration: 100);
-    }
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      // Simuler une vérification (à remplacer par un vrai appel API)
-      await Future.delayed(const Duration(seconds: 1));
-      
-      if (!mounted) return;
-      Navigator.pop(context);
-
-      // Simulation de données
-      if (code.length == 6) {
-        _showAccesAutoriseDialog({
-          'nom_visiteur': 'Jean Dupont',
-          'appartement': 'A101',
-          'id': 1
-        });
-      } else {
-        _showAccesRefuseDialog('Code invalide');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      Navigator.pop(context);
-      _showSnackBar('Erreur: $e', _rouge);
-    }
+  if (await Vibration.hasVibrator() ?? false) {
+    Vibration.vibrate(duration: 100);
   }
+  
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
+
+  try {
+    // Appel API réel
+    final response = await ApiService.verifierCodeAcces(code);
+    
+    if (!mounted) return;
+    Navigator.pop(context);
+
+    if (response['success'] == true && response['valide'] == true) {
+      // Accès autorisé
+      _showAccesAutoriseDialog(response['visiteur']);
+    } else {
+      // Accès refusé
+      _showAccesRefuseDialog(response['message'] ?? 'Code invalide');
+    }
+  } catch (e) {
+    if (!mounted) return;
+    Navigator.pop(context);
+    _showSnackBar('Erreur: $e', _rouge);
+  }
+}
 
   Future<void> _rechercherParCode(String code) async {
     if (code.length != 6) {
@@ -813,85 +813,144 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
     await _verifierCodeAcces(code);
   }
 
-  void _showAccesAutoriseDialog(Map<String, dynamic> visiteur) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.check, color: Colors.white, size: 40),
+ void _showAccesAutoriseDialog(Map<String, dynamic> visiteur) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.green,
+          shape: BoxShape.circle,
         ),
-        titlePadding: const EdgeInsets.only(top: 30),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              '✅ ACCÈS AUTORISÉ',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.green,
-              ),
+        child: const Icon(Icons.check, color: Colors.white, size: 40),
+      ),
+      titlePadding: const EdgeInsets.only(top: 30),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '✅ ACCÈS AUTORISÉ',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.green,
             ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  _buildResultInfoRow(Icons.person, 'Visiteur', visiteur['nom_visiteur'] ?? 'Inconnu'),
-                  const Divider(height: 16),
-                  _buildResultInfoRow(Icons.apartment, 'Appartement', visiteur['appartement'] ?? '?'),
-                  const Divider(height: 16),
-                  _buildResultInfoRow(Icons.access_time, 'Heure', '${DateTime.now().hour}:${DateTime.now().minute}'),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('FERMER'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _marquerAccesUtilise(visiteur['id']);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _vertMoyen,
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Text('Marquer comme utilisé'),
+            child: Column(
+              children: [
+                _buildResultInfoRow(Icons.person, 'Visiteur', visiteur['nom_visiteur'] ?? 'Inconnu'),
+                const Divider(height: 16),
+                _buildResultInfoRow(Icons.apartment, 'Appartement', visiteur['appartement'] ?? '?'),
+                const Divider(height: 16),
+                _buildResultInfoRow(Icons.access_time, 'Heure', '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}'),
+                const Divider(height: 16),
+                _buildResultInfoRow(Icons.qr_code, 'Code', visiteur['code_acces'] ?? ''),
+              ],
+            ),
           ),
         ],
       ),
-    ).then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: const [
-              Icon(Icons.celebration, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Bienvenue ! Accès autorisé'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 3),
-          behavior: SnackBarBehavior.floating,
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('FERMER'),
         ),
-      );
-    });
-  }
-
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            _marquerAccesUtilise(visiteur['id']);
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _vertMoyen,
+          ),
+          child: const Text('Marquer comme utilisé'),
+        ),
+      ],
+    ),
+  ).then((_) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: const [
+            Icon(Icons.celebration, color: Colors.white),
+            SizedBox(width: 8),
+            Text('Bienvenue ! Accès autorisé'),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  });
+}
+void _showAccesExpireDialog(String message) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _orange,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.warning, color: Colors.white, size: 40),
+      ),
+      titlePadding: const EdgeInsets.only(top: 30),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '⚠️ ACCÈS EXPIRÉ',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.orange,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 14),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Veuillez contacter le résident pour un nouveau code d\'accès.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('FERMER'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            _showQRScanner();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _bleuMoyen,
+          ),
+          child: const Text('Scanner à nouveau'),
+        ),
+      ],
+    ),
+  );
+}
   void _showAccesRefuseDialog(String message) {
     showDialog(
       context: context,
@@ -972,14 +1031,21 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
   }
 
   Future<void> _marquerAccesUtilise(int accesId) async {
-    try {
-      // Simuler un appel API
-      await Future.delayed(const Duration(milliseconds: 500));
+  try {
+    final response = await ApiService.terminerAccesVisiteur(accesId);
+    
+    if (!mounted) return;
+    
+    if (response['success'] == true) {
       _showSnackBar('Accès marqué comme utilisé', _vertMoyen);
-    } catch (e) {
-      _showSnackBar('Erreur: $e', _rouge);
+      _chargerAccesRecents(); // Recharger la liste
+    } else {
+      _showSnackBar(response['message'] ?? 'Erreur', _rouge);
     }
+  } catch (e) {
+    _showSnackBar('Erreur: $e', _rouge);
   }
+}
 
   // ── PAGE HISTORIQUE ───────────────────────────────────────
   Widget _buildHistoriqueContent() {
@@ -2363,15 +2429,18 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
     );
   }
 
-  Future<void> _showReserverVisiteurDialog(BuildContext context, Map<String, dynamic> place) async {
-    final _nomController = TextEditingController();
-    final _immatriculationController = TextEditingController();
+ Future<void> _showReserverVisiteurDialog(BuildContext context, Map<String, dynamic> place) async {
+  final _nomController = TextEditingController();
+  final _immatriculationController = TextEditingController();
+  bool _isLoading = false;
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    return showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+  showDialog(
+    context: context,
+    barrierDismissible: !_isLoading,
+    builder: (context) => StatefulBuilder(
+      builder: (ctx, setModalState) => AlertDialog(
         title: Row(
           children: [
             Icon(Icons.local_parking, color: _vertMoyen),
@@ -2384,6 +2453,7 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
           children: [
             TextField(
               controller: _nomController,
+              enabled: !_isLoading,
               decoration: InputDecoration(
                 labelText: 'Nom du visiteur',
                 border: OutlineInputBorder(
@@ -2395,6 +2465,7 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
             const SizedBox(height: 12),
             TextField(
               controller: _immatriculationController,
+              enabled: !_isLoading,
               decoration: InputDecoration(
                 labelText: 'Immatriculation',
                 border: OutlineInputBorder(
@@ -2403,60 +2474,86 @@ class _SecurityDashboardState extends State<SecurityDashboard> with TickerProvid
                 prefixIcon: Icon(Icons.directions_car, color: _vertMoyen),
               ),
             ),
+            if (_isLoading) ...[
+              const SizedBox(height: 16),
+              const Center(child: CircularProgressIndicator()),
+            ],
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: _isLoading ? null : () => Navigator.pop(ctx),
             child: const Text('Annuler'),
           ),
           ElevatedButton(
-            onPressed: () async {
-              if (_nomController.text.isEmpty || _immatriculationController.text.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Veuillez remplir tous les champs'),
-                    backgroundColor: Colors.orange,
-                  ),
-                );
-                return;
-              }
-              
-              final response = await ApiService.reserverPlaceVisiteur(
-                place['id'],
-                _nomController.text,
-                _immatriculationController.text,
-              );
-
-              if (!mounted) return;
-
-              Navigator.pop(context);
-              Navigator.pop(context);
-
-              if (response['success'] == true) {
-                _loadData();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Place réservée pour ${_nomController.text}'),
-                    backgroundColor: _vertMoyen,
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(response['message'] ?? 'Erreur'),
-                    backgroundColor: _rouge,
-                  ),
-                );
-              }
-            },
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    if (_nomController.text.isEmpty || _immatriculationController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Veuillez remplir tous les champs'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                      return;
+                    }
+                    
+                    setModalState(() => _isLoading = true);
+                    
+                    try {
+                      // 🔴 CORRECTION: Passer widget.user.id comme agentId
+                      final response = await ApiService.reserverPlaceVisiteur(
+                        place['id'],
+                        _nomController.text,
+                        _immatriculationController.text,
+                        widget.user.id,  // <- L'ID de l'agent connecté
+                      );
+                      
+                      if (!mounted) return;
+                      
+                      if (response['success'] == true) {
+                        // Fermer le dialogue
+                        Navigator.pop(ctx);
+                        
+                        // Recharger les données
+                        await _loadData();
+                        
+                        // Afficher le succès
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✅ Place réservée pour ${_nomController.text}'),
+                            backgroundColor: _vertMoyen,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      } else {
+                        setModalState(() => _isLoading = false);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(response['message'] ?? 'Erreur lors de la réservation'),
+                            backgroundColor: _rouge,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      setModalState(() => _isLoading = false);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Erreur: $e'),
+                          backgroundColor: _rouge,
+                        ),
+                      );
+                    }
+                  },
             style: ElevatedButton.styleFrom(backgroundColor: _vertMoyen),
             child: const Text('Réserver'),
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Future<void> _libererPlaceVisiteur(Map<String, dynamic> place) async {
     if (!mounted) return;

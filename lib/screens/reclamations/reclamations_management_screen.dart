@@ -54,55 +54,56 @@ class _ReclamationsManagementScreenState extends State<ReclamationsManagementScr
   }
 
   Future<void> _loadReclamations() async {
-  setState(() => _isLoading = true);
+    setState(() => _isLoading = true);
 
-  try {
-    final response = await ApiService.getReclamations();
-    
-    if (response['success'] == true) {
-      List<Reclamation> reclamations = [];
-      if (response['reclamations'] != null) {
-        for (var item in response['reclamations']) {
-          try {
-            reclamations.add(Reclamation.fromJson(item));
-          } catch (e) {
-            print('❌ Erreur parsing item: $e');
-            print('❌ Item: $item');
+    try {
+      final response = await ApiService.getReclamations();
+      
+      if (response['success'] == true) {
+        List<Reclamation> reclamations = [];
+        if (response['reclamations'] != null) {
+          for (var item in response['reclamations']) {
+            try {
+              reclamations.add(Reclamation.fromJson(item));
+            } catch (e) {
+              print('❌ Erreur parsing item: $e');
+              print('❌ Item: $item');
+            }
           }
         }
+        
+        setState(() {
+          _reclamations = reclamations;
+          _applyFilters();
+          _calculerStatistiques();
+          _isLoading = false;
+        });
+        
+        print('✅ ${reclamations.length} réclamations chargées');
+      } else {
+        setState(() {
+          _errorMessage = response['message'] ?? 'Erreur de chargement';
+          _isLoading = false;
+        });
       }
-      
+    } catch (e) {
+      print('❌ Erreur catch: $e');
       setState(() {
-        _reclamations = reclamations;
-        _applyFilters();
-        _calculerStatistiques();
-        _isLoading = false;
-      });
-      
-      print('✅ ${reclamations.length} réclamations chargées');
-    } else {
-      setState(() {
-        _errorMessage = response['message'] ?? 'Erreur de chargement';
+        _errorMessage = 'Erreur: $e';
         _isLoading = false;
       });
     }
-  } catch (e) {
-    print('❌ Erreur catch: $e');
-    setState(() {
-      _errorMessage = 'Erreur: $e';
-      _isLoading = false;
-    });
   }
-}
+  
   Future<void> _loadAgents() async {
     try {
-     final agents = await ApiService.getServiceAgents();
-setState(() {
-  _agents = agents.map((agent) => {
-    'id': agent.id,
-    'nom': agent.nom,
-  }).toList();
-});
+      final agents = await ApiService.getServiceAgents();
+      setState(() {
+        _agents = agents.map((agent) => {
+          'id': agent.id,
+          'nom': agent.nom,
+        }).toList();
+      });
     } catch (e) {
       print('❌ Erreur chargement agents: $e');
     }
@@ -161,31 +162,37 @@ setState(() {
       final response = await ApiService.updateReclamationStatus(reclamationId, newStatus);
       
       if (response['success'] == true) {
-        _loadReclamations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Statut mis à jour avec succès'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await _loadReclamations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Statut mis à jour avec succès'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Erreur'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Erreur'),
-            backgroundColor: Colors.orange,
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 
@@ -194,31 +201,37 @@ setState(() {
       final response = await ApiService.assignerReclamation(reclamationId, agentId);
       
       if (response['success'] == true) {
-        _loadReclamations();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Réclamation assignée avec succès'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await _loadReclamations();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Réclamation assignée avec succès'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Erreur'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Erreur'),
-            backgroundColor: Colors.orange,
+            content: Text('Erreur: $e'),
+            backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 
@@ -818,6 +831,7 @@ setState(() {
                               onSelected: (selected) {
                                 if (selected) {
                                   _assignerReclamation(reclamation.id, agent['id']);
+                                  Navigator.pop(context); // Close bottom sheet after assignment
                                 }
                               },
                               backgroundColor: Colors.grey[100],

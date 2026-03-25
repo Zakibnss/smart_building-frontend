@@ -9,6 +9,8 @@ import '../models/parking.dart';
 import '../models/service_model.dart';
 
 class ApiService {
+    static final http.Client _client = http.Client();
+
   // Pour Chrome (localhost)
   static const String baseUrl =
       'http://localhost/smart-residence/smart_building-backend/backend/api';
@@ -20,24 +22,13 @@ class ApiService {
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      print('🔵 Tentative de connexion...');
-      print('Email: $email');
-      print('Password: $password');
-
-      var body = json.encode({
-        'email': email,
-        'password': password,
-      });
-
-      print('📦 Corps de la requête: $body');
-
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$baseUrl/login.php'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: body,
+        body: json.encode({'email': email, 'password': password}),
       );
 
       print('📥 Réponse status: ${response.statusCode}');
@@ -121,6 +112,264 @@ class ApiService {
     }
   }
 
+// Dans ApiService, ajoutez ces méthodes
+
+static Future<Map<String, dynamic>> getArchives() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/archives.php'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'archives': []};
+  } catch (e) {
+    print('❌ Erreur chargement archives: $e');
+    return {'success': false, 'archives': []};
+  }
+}
+
+static Future<Map<String, dynamic>> getArchiveDetail(int archiveId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/archives.php?id=$archiveId'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false};
+  } catch (e) {
+    print('❌ Erreur détail archive: $e');
+    return {'success': false};
+  }
+}
+
+static Future<Map<String, dynamic>> restaurerResident(int residentId) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/admin/archives.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'action': 'restaurer',
+        'resident_id': residentId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur restauration: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+
+static Future<Map<String, dynamic>> supprimerResidentArchive(int archiveId) async {
+  try {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/admin/archives.php?id=$archiveId'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur suppression archive: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+// Dans ApiService
+static Future<Map<String, dynamic>> getStatisticsDetail() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/statistics_detail.php'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false};
+  } catch (e) {
+    print('❌ Erreur stats détaillées: $e');
+    return {'success': false};
+  }
+}
+// ==================== MÉTHODES POUR AGENT SERVICE ====================
+
+static Future<Map<String, dynamic>> getNouvellesDemandesService() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/agent_service/demandes.php'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'demandes': []};
+  } catch (e) {
+    print('❌ Erreur chargement demandes: $e');
+    return {'success': false, 'demandes': []};
+  }
+}
+
+static Future<Map<String, dynamic>> getMesMissionsService(int agentId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/agent_service/missions.php?agent_id=$agentId'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'missions': []};
+  } catch (e) {
+    print('❌ Erreur chargement missions: $e');
+    return {'success': false, 'missions': []};
+  }
+}
+
+static Future<Map<String, dynamic>> accepterMission(int demandeId, int agentId) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/agent_service/missions.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'action': 'accepter',
+        'demande_id': demandeId,
+        'agent_id': agentId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur acceptation mission: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+
+static Future<Map<String, dynamic>> refuserMission(int demandeId, int agentId) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/agent_service/missions.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'action': 'refuser',
+        'demande_id': demandeId,
+        'agent_id': agentId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur refus mission: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+
+static Future<Map<String, dynamic>> updateMissionStatut(int missionId, String statut) async {
+  try {
+    final response = await http.put(
+      Uri.parse('$baseUrl/agent_service/missions.php?id=$missionId'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({'statut': statut}),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur mise à jour statut: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+
+static Future<Map<String, dynamic>> getServiceStats(int agentId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/agent_service/stats.php?agent_id=$agentId'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'stats': {}};
+  } catch (e) {
+    print('❌ Erreur stats service: $e');
+    return {'success': false, 'stats': {}};
+  }
+}
+
+static Future<Map<String, dynamic>> updateAgentDisponibilite(int agentId, bool disponible) async {
+  try {
+    final response = await http.put(
+      Uri.parse('$baseUrl/agent_service/disponibilite.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'agent_id': agentId,
+        'disponible': disponible,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur mise à jour disponibilité: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
+// Dans ApiService, ajoutez ces méthodes
+
+static Future<Map<String, dynamic>> getReclamationsForTransfer() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/reclamations_transfer.php'),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'reclamations': []};
+  } catch (e) {
+    print('❌ Erreur chargement réclamations: $e');
+    return {'success': false, 'reclamations': []};
+  }
+}
+
+static Future<Map<String, dynamic>> transferReclamationToMission(
+    int reclamationId, int agentId, String priorite) async {
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/admin/transfer_reclamation.php'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode({
+        'reclamation_id': reclamationId,
+        'agent_id': agentId,
+        'priorite': priorite,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return {'success': false, 'message': 'Erreur serveur'};
+  } catch (e) {
+    print('❌ Erreur transfert réclamation: $e');
+    return {'success': false, 'message': e.toString()};
+  }
+}
   // ==================== ACTIVITÉS RÉCENTES ====================
 
   static Future<Map<String, dynamic>> getRecentActivities() async {
@@ -735,11 +984,9 @@ class ApiService {
   }
 
   // ----- PARKING POUR AGENT -----
-  static Future<Map<String, dynamic>> getParkingResidents() async {
+ static Future<Map<String, dynamic>> getParkingResidents() async {
     try {
-      print('📤 Récupération parking résidents');
-      
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$baseUrl/agent/parking.php?type=resident'),
       );
 
@@ -798,68 +1045,70 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> reserverPlaceVisiteur(
-    int parkingId, 
-    String nomVisiteur, 
-    String immatriculation
-  ) async {
-    try {
-      print('📤 Réservation place visiteur: $parkingId pour $nomVisiteur');
-      
-      final url = Uri.parse('$baseUrl/agent/parking.php');
-      print('📤 URL: $url');
-      
-      final body = json.encode({
-        'action': 'reserver',
-        'parking_id': parkingId,
-        'nom_visiteur': nomVisiteur,
-        'immatriculation': immatriculation,
-      });
-      print('📤 Body: $body');
-      
-      final response = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: body,
-      );
+ static Future<Map<String, dynamic>> reserverPlaceVisiteur(
+  int parkingId, 
+  String nomVisiteur, 
+  String immatriculation,
+  int agentId  // Ajouter ce paramètre
+) async {
+  try {
+    print('📤 Réservation place visiteur: $parkingId pour $nomVisiteur par agent $agentId');
+    
+    final url = Uri.parse('$baseUrl/agent/parking.php');
+    print('📤 URL: $url');
+    
+    final body = json.encode({
+      'action': 'reserver',
+      'parking_id': parkingId,
+      'nom_visiteur': nomVisiteur,
+      'immatriculation': immatriculation,
+      'agent_id': agentId,  // Ajouter l'agent_id
+    });
+    print('📤 Body: $body');
+    
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: body,
+    );
 
-      print('📥 Statut: ${response.statusCode}');
-      print('📥 Réponse brute: ${response.body}');
+    print('📥 Statut: ${response.statusCode}');
+    print('📥 Réponse brute: ${response.body}');
 
-      if (response.statusCode == 200) {
-        if (response.body.trim().isEmpty) {
-          print('❌ Réponse vide');
-          return {
-            'success': false, 
-            'message': 'Le serveur a renvoyé une réponse vide'
-          };
-        }
-        
-        try {
-          final Map<String, dynamic> jsonResponse = json.decode(response.body);
-          print('✅ Réponse JSON: $jsonResponse');
-          return jsonResponse;
-        } catch (e) {
-          print('❌ Erreur parsing JSON: $e');
-          return {
-            'success': false, 
-            'message': 'Erreur de parsing: $e\nRéponse: ${response.body}'
-          };
-        }
-      } else {
+    if (response.statusCode == 200) {
+      if (response.body.trim().isEmpty) {
+        print('❌ Réponse vide');
         return {
           'success': false, 
-          'message': 'Erreur HTTP ${response.statusCode}'
+          'message': 'Le serveur a renvoyé une réponse vide'
         };
       }
-    } catch (e) {
-      print('❌ Exception: $e');
-      return {'success': false, 'message': 'Exception: $e'};
+      
+      try {
+        final Map<String, dynamic> jsonResponse = json.decode(response.body);
+        print('✅ Réponse JSON: $jsonResponse');
+        return jsonResponse;
+      } catch (e) {
+        print('❌ Erreur parsing JSON: $e');
+        return {
+          'success': false, 
+          'message': 'Erreur de parsing: $e\nRéponse: ${response.body}'
+        };
+      }
+    } else {
+      return {
+        'success': false, 
+        'message': 'Erreur HTTP ${response.statusCode}'
+      };
     }
+  } catch (e) {
+    print('❌ Exception: $e');
+    return {'success': false, 'message': 'Exception: $e'};
   }
+}
 
   static Future<Map<String, dynamic>> libererPlaceVisiteur(int parkingId) async {
     try {
