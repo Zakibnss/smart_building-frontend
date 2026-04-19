@@ -551,41 +551,52 @@ static Future<Map<String, dynamic>> transferReclamationToMission(
     }
   }
 
-  static Future<bool> createServiceRequest(Map<String, dynamic> serviceData) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/resident/services.php'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(serviceData),
-      );
+ static Future<bool> createServiceRequest(Map<String, dynamic> serviceData) async {
+  try {
+    print('📤 URL: $baseUrl/resident/services.php');
+    print('📤 Headers: Content-Type: application/json');
+    print('📤 Body: ${json.encode(serviceData)}');
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/resident/services.php'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: json.encode(serviceData),
+    );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['success'] ?? false;
-      }
-      return false;
-    } catch (e) {
-      print('❌ Erreur création service: $e');
-      return false;
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print('✅ Success: ${data['success']}');
+      print('✅ Message: ${data['message']}');
+      return data['success'] ?? false;
     }
+    print('❌ HTTP Error: ${response.statusCode}');
+    return false;
+  } catch (e) {
+    print('❌ Exception: $e');
+    return false;
   }
-
-  static Future<Map<String, dynamic>> getServiceHistory(int userId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/resident/service_history.php?user_id=$userId'),
-      );
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      }
-      return {'success': false, 'services': []};
-    } catch (e) {
-      print('❌ Erreur historique services: $e');
-      return {'success': false, 'services': []};
+}
+static Future<Map<String, dynamic>> getServiceHistory(int userId) async {
+  try {
+    // Ajouter user_id comme paramètre GET
+    final response = await http.get(
+      Uri.parse('$baseUrl/resident/services.php?history&user_id=$userId'),
+    );
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
     }
+    return {'success': false, 'services': []};
+  } catch (e) {
+    print('❌ Erreur historique services: $e');
+    return {'success': false, 'services': []};
   }
-
+}
   static Future<bool> cancelServiceRequest(int serviceId, int userId) async {
     try {
       final response = await http.delete(

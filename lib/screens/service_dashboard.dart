@@ -12,11 +12,10 @@ class ServiceDashboard extends StatefulWidget {
 }
 
 class _ServiceDashboardState extends State<ServiceDashboard> {
-  int _selectedTab = 0; // 0: Nouvelles demandes, 1: Mes missions
+  int _selectedTab = 0;
   bool _isLoading = true;
   String? _errorMessage;
   
-  // Données
   List<Map<String, dynamic>> _nouvellesDemandes = [];
   List<Map<String, dynamic>> _mesMissions = [];
   Map<String, dynamic> _stats = {};
@@ -34,6 +33,9 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
   @override
   void initState() {
     super.initState();
+    print('🆔 Agent ID: ${widget.user.id}');
+    print('👤 Agent Nom: ${widget.user.nom}');
+    print('📧 Agent Email: ${widget.user.email}');
     _loadData();
   }
 
@@ -41,25 +43,45 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
     setState(() => _isLoading = true);
 
     try {
-      // Charger les nouvelles demandes
+      // 1. Charger les nouvelles demandes (en attente)
       final demandesResponse = await ApiService.getNouvellesDemandesService();
-      if (demandesResponse['success']) {
+      print('📥 Demandes API - success: ${demandesResponse['success']}');
+      print('📥 Demandes API - message: ${demandesResponse['message']}');
+      
+      if (demandesResponse['success'] == true) {
+        List<Map<String, dynamic>> toutesDemandes = 
+            List<Map<String, dynamic>>.from(demandesResponse['demandes'] ?? []);
+        
         setState(() {
-          _nouvellesDemandes = List<Map<String, dynamic>>.from(demandesResponse['demandes'] ?? []);
+          _nouvellesDemandes = toutesDemandes
+              .where((d) => d['statut'] == 'en_attente')
+              .toList();
         });
+        print('✅ Nouvelles demandes: ${_nouvellesDemandes.length}');
+      } else {
+        print('❌ Erreur demandes: ${demandesResponse['message']}');
       }
 
-      // Charger mes missions
-      final missionsResponse = await ApiService.getMesMissionsService(widget.user.id);
-      if (missionsResponse['success']) {
+      // 2. Charger mes missions avec l'ID agent
+      final agentId = widget.user.id;
+      print('🆔 Appel API missions avec agent_id: $agentId');
+      
+      final missionsResponse = await ApiService.getMesMissionsService(agentId);
+      print('📥 Missions API - success: ${missionsResponse['success']}');
+      print('📥 Missions API - message: ${missionsResponse['message']}');
+      
+      if (missionsResponse['success'] == true) {
         setState(() {
           _mesMissions = List<Map<String, dynamic>>.from(missionsResponse['missions'] ?? []);
         });
+        print('✅ Mes missions: ${_mesMissions.length}');
+      } else {
+        print('❌ Erreur missions: ${missionsResponse['message']}');
       }
 
-      // Charger les statistiques
-      final statsResponse = await ApiService.getServiceStats(widget.user.id);
-      if (statsResponse['success']) {
+      // 3. Charger les statistiques
+      final statsResponse = await ApiService.getServiceStats(agentId);
+      if (statsResponse['success'] == true) {
         setState(() {
           _stats = statsResponse['stats'] ?? {};
         });
@@ -67,6 +89,7 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
 
       setState(() => _isLoading = false);
     } catch (e) {
+      print('❌ Erreur _loadData: $e');
       setState(() {
         _errorMessage = 'Erreur: $e';
         _isLoading = false;
@@ -75,35 +98,53 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
   }
 
   Future<void> _accepterMission(Map<String, dynamic> demande) async {
+    setState(() => _isLoading = true);
+    
     try {
-      final response = await ApiService.accepterMission(demande['id'], widget.user.id);
+      final demandeId = demande['id'];
+      final agentId = widget.user.id;
       
-      if (response['success']) {
-        _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Mission acceptée avec succès'),
-            backgroundColor: _vertMoyen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      print('📤 Acceptation - demande_id: $demandeId, agent_id: $agentId');
+      
+      final response = await ApiService.accepterMission(demandeId, agentId);
+      
+      print('📥 Réponse acceptation: ${response['success']} - ${response['message']}');
+      
+      if (response['success'] == true) {
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Mission acceptée avec succès'),
+              backgroundColor: _vertMoyen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Erreur lors de l\'acceptation'),
+              backgroundColor: _rouge,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur acceptation: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Erreur'),
+            content: Text('Erreur: $e'),
             backgroundColor: _rouge,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: _rouge,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -112,7 +153,7 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Refuser la mission'),
-        content: Text('Êtes-vous sûr de vouloir refuser cette mission ?\n\n${demande['type_service']} - ${demande['appartement']}'),
+        content: Text('Êtes-vous sûr de vouloir refuser cette mission ?\n\n${demande['type_service']} - ${demande['appartement'] ?? 'N/A'}'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -131,85 +172,118 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
 
     if (confirm != true) return;
 
+    setState(() => _isLoading = true);
+    
     try {
-      final response = await ApiService.refuserMission(demande['id'], widget.user.id);
+      final demandeId = demande['id'];
+      final agentId = widget.user.id;
       
-      if (response['success']) {
-        _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Mission refusée'),
-            backgroundColor: _orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      print('📤 Refus - demande_id: $demandeId, agent_id: $agentId');
+      
+      final response = await ApiService.refuserMission(demandeId, agentId);
+      
+      if (response['success'] == true) {
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Mission refusée'),
+              backgroundColor: _orange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Erreur'),
+              backgroundColor: _rouge,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur refus: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Erreur'),
+            content: Text('Erreur: $e'),
             backgroundColor: _rouge,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: _rouge,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateMissionStatut(Map<String, dynamic> mission, String nouveauStatut) async {
+    setState(() => _isLoading = true);
+    
     try {
-      final response = await ApiService.updateMissionStatut(mission['id'], nouveauStatut);
+      final missionId = mission['mission_id'] ?? mission['id'];
       
-      if (response['success']) {
-        _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Statut mis à jour: $nouveauStatut'),
-            backgroundColor: _vertMoyen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      print('📤 Update statut - mission_id: $missionId, nouveau_statut: $nouveauStatut');
+      
+      final response = await ApiService.updateMissionStatut(missionId, nouveauStatut);
+      
+      if (response['success'] == true) {
+        await _loadData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Statut mis à jour: $nouveauStatut'),
+              backgroundColor: _vertMoyen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Erreur'),
+              backgroundColor: _rouge,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('❌ Erreur update statut: $e');
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(response['message'] ?? 'Erreur'),
+            content: Text('Erreur: $e'),
             backgroundColor: _rouge,
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: _rouge,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _updateDisponibilite() async {
     try {
       final response = await ApiService.updateAgentDisponibilite(widget.user.id, _disponible);
-      if (response['success']) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_disponible ? 'Vous êtes maintenant disponible' : 'Vous êtes maintenant indisponible'),
-            backgroundColor: _vertMoyen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      if (response['success'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_disponible ? 'Vous êtes maintenant disponible' : 'Vous êtes maintenant indisponible'),
+              backgroundColor: _vertMoyen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Erreur mise à jour disponibilité: $e');
+      print('❌ Erreur mise à jour disponibilité: $e');
     }
   }
 
@@ -295,7 +369,6 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
               ? _buildErrorState()
               : Column(
                   children: [
-                    // Onglets
                     Container(
                       color: Colors.white,
                       child: Row(
@@ -417,20 +490,23 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _nouvellesDemandes.length,
-      itemBuilder: (context, index) {
-        final demande = _nouvellesDemandes[index];
-        return _buildDemandeCard(demande);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _nouvellesDemandes.length,
+        itemBuilder: (context, index) {
+          final demande = _nouvellesDemandes[index];
+          return _buildDemandeCard(demande);
+        },
+      ),
     );
   }
 
   Widget _buildDemandeCard(Map<String, dynamic> demande) {
     Color typeColor = _getServiceColor(demande['type_service']);
     IconData typeIcon = _getServiceIcon(demande['type_service']);
-    bool estUrgent = demande['priorite'] == 'urgente';
+    bool estUrgent = demande['priorite'] == 'urgente' || demande['est_urgent'] == true;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -443,7 +519,6 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête
             Row(
               children: [
                 Container(
@@ -460,14 +535,14 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        demande['type_service'],
+                        demande['type_service'] ?? 'Service',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Appartement: ${demande['appartement']}',
+                        'Appartement: ${demande['appartement'] ?? demande['num_appartement'] ?? 'N/A'}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -494,39 +569,30 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                   ),
               ],
             ),
-            
             const SizedBox(height: 12),
-            
-            // Description
             Text(
-              demande['description'],
+              demande['description'] ?? 'Aucune description',
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
             ),
-            
             const SizedBox(height: 12),
-            
-            // Infos supplémentaires
             Row(
               children: [
-                Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                Icon(Icons.person, size: 12, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  _formatDate(demande['date_demande']),
+                  demande['resident_nom'] ?? 'Résident',
                   style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
                 const SizedBox(width: 12),
-                Icon(Icons.access_time, size: 12, color: Colors.grey[600]),
+                Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  demande['heure_souhaitee'] ?? 'À convenir',
+                  _formatDate(demande['date_demande'] ?? demande['date_souhaitee']),
                   style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                 ),
               ],
             ),
-            
             const SizedBox(height: 16),
-            
-            // Boutons action
             Row(
               children: [
                 Expanded(
@@ -590,21 +656,25 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: _mesMissions.length,
-      itemBuilder: (context, index) {
-        final mission = _mesMissions[index];
-        return _buildMissionCard(mission);
-      },
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _mesMissions.length,
+        itemBuilder: (context, index) {
+          final mission = _mesMissions[index];
+          return _buildMissionCard(mission);
+        },
+      ),
     );
   }
 
   Widget _buildMissionCard(Map<String, dynamic> mission) {
     Color typeColor = _getServiceColor(mission['type_service']);
     IconData typeIcon = _getServiceIcon(mission['type_service']);
-    Color statutColor = _getStatutColor(mission['statut']);
-    String statutText = _getStatutText(mission['statut']);
+    String statutMission = mission['statut'] ?? 'en_attente';
+    Color statutColor = _getStatutColor(statutMission);
+    String statutText = _getStatutText(statutMission);
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -617,7 +687,6 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // En-tête
             Row(
               children: [
                 Container(
@@ -634,14 +703,14 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        mission['type_service'],
+                        mission['type_service'] ?? 'Service',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Appartement: ${mission['appartement']}',
+                        'Appartement: ${mission['appartement'] ?? mission['num_appartement'] ?? 'N/A'}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -667,20 +736,14 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                 ),
               ],
             ),
-            
             const SizedBox(height: 12),
-            
-            // Description
             Text(
-              mission['description'],
+              mission['description'] ?? 'Aucune description',
               style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
-            
             const SizedBox(height: 12),
-            
-            // Infos
             Row(
               children: [
                 Icon(Icons.person, size: 12, color: Colors.grey[600]),
@@ -698,11 +761,8 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                 ),
               ],
             ),
-            
             const SizedBox(height: 16),
-            
-            // Boutons action selon statut
-            if (mission['statut'] == 'en_cours')
+            if (statutMission == 'en_cours')
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -719,8 +779,7 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                   ),
                 ),
               ),
-            
-            if (mission['statut'] == 'termine')
+            if (statutMission == 'termine')
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -746,7 +805,7 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
     );
   }
 
-  Color _getServiceColor(String type) {
+  Color _getServiceColor(String? type) {
     switch (type) {
       case 'Plomberie':
         return _teal;
@@ -758,12 +817,14 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
         return _violet;
       case 'Sécurité':
         return _bleuMoyen;
+      case 'Achat':
+        return const Color(0xFFFFC107);
       default:
         return _bleuFonce;
     }
   }
 
-  IconData _getServiceIcon(String type) {
+  IconData _getServiceIcon(String? type) {
     switch (type) {
       case 'Plomberie':
         return Icons.plumbing;
@@ -775,15 +836,17 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
         return Icons.build;
       case 'Sécurité':
         return Icons.security;
+      case 'Achat':
+        return Icons.shopping_cart;
       default:
         return Icons.build;
     }
   }
 
-  Color _getStatutColor(String statut) {
+  Color _getStatutColor(String? statut) {
     switch (statut) {
       case 'en_attente':
-        return Colors.orange;
+        return _orange;
       case 'en_cours':
         return _bleuMoyen;
       case 'termine':
@@ -793,7 +856,7 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
     }
   }
 
-  String _getStatutText(String statut) {
+  String _getStatutText(String? statut) {
     switch (statut) {
       case 'en_attente':
         return 'En attente';
@@ -802,11 +865,12 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
       case 'termine':
         return 'Terminé';
       default:
-        return statut;
+        return statut ?? 'Inconnu';
     }
   }
 
-  String _formatDate(String dateStr) {
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'Date non spécifiée';
     try {
       final date = DateTime.parse(dateStr);
       return '${date.day}/${date.month}/${date.year}';
@@ -818,48 +882,56 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
   void _showProfileDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Mon profil'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: 36,
-              backgroundColor: _bleuFonce,
-              child: Text(widget.user.nom[0].toUpperCase(),
-                  style: const TextStyle(fontSize: 32, color: Colors.white)),
-            ),
-            const SizedBox(height: 16),
-            _infoRow(Icons.person, 'Nom', widget.user.nom),
-            const Divider(),
-            _infoRow(Icons.email, 'Email', widget.user.email),
-            const Divider(),
-            _infoRow(Icons.build, 'Rôle', 'Agent Service'),
-            const Divider(),
-            Row(
-              children: [
-                Icon(Icons.toggle_on, color: _vertMoyen),
-                const SizedBox(width: 8),
-                const Text('Disponibilité: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                Switch(
-                  value: _disponible,
-                  onChanged: (value) {
-                    setState(() => _disponible = value);
-                    _updateDisponibilite();
-                  },
-                  activeColor: _vertMoyen,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Mon profil'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 36,
+                backgroundColor: _bleuFonce,
+                child: Text(
+                  widget.user.nom.isNotEmpty ? widget.user.nom[0].toUpperCase() : 'A',
+                  style: const TextStyle(fontSize: 32, color: Colors.white),
                 ),
-                Text(_disponible ? 'Disponible' : 'Indisponible',
-                    style: TextStyle(color: _disponible ? _vertMoyen : _rouge)),
-              ],
+              ),
+              const SizedBox(height: 16),
+              _infoRow(Icons.person, 'Nom', widget.user.nom),
+              const Divider(),
+              _infoRow(Icons.email, 'Email', widget.user.email),
+              const Divider(),
+              _infoRow(Icons.build, 'Rôle', 'Agent Service'),
+              const Divider(),
+              Row(
+                children: [
+                  Icon(Icons.toggle_on, color: _vertMoyen),
+                  const SizedBox(width: 8),
+                  const Text('Disponibilité: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Switch(
+                    value: _disponible,
+                    onChanged: (value) async {
+                      setStateDialog(() => _disponible = value);
+                      setState(() => _disponible = value);
+                      await _updateDisponibilite();
+                    },
+                    activeColor: _vertMoyen,
+                  ),
+                  Text(
+                    _disponible ? 'Disponible' : 'Indisponible',
+                    style: TextStyle(color: _disponible ? _vertMoyen : _rouge),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Fermer'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Fermer')),
-        ],
       ),
     );
   }
@@ -884,15 +956,18 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
-        height: 340,
+        height: 400,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Notifications',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Notifications',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: FutureBuilder(
@@ -906,46 +981,57 @@ class _ServiceDashboardState extends State<ServiceDashboard> {
                     final notifications = snapshot.data!['notifications'] as List? ?? [];
                     
                     if (notifications.isEmpty) {
-                      return const Center(child: Text('Aucune notification'));
+                      return const Center(
+                        child: Text('Aucune notification'),
+                      );
                     }
                     
-                    return ListView.builder(
+                    return ListView.separated(
                       itemCount: notifications.length,
+                      separatorBuilder: (_, __) => const Divider(),
                       itemBuilder: (context, index) {
                         final n = notifications[index];
-                        return _notifTile(
-                          Icons.notifications,
-                          _bleuMoyen,
-                          n['titre'] ?? 'Notification',
-                          n['contenu'] ?? '',
-                          n['date_creation'] ?? '',
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            radius: 18,
+                            backgroundColor: _bleuMoyen.withOpacity(0.15),
+                            child: Icon(Icons.notifications, color: _bleuMoyen, size: 18),
+                          ),
+                          title: Text(
+                            n['titre'] ?? 'Notification',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            n['contenu'] ?? '',
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: Text(
+                            _formatDate(n['date_creation']),
+                            style: const TextStyle(color: Colors.grey, fontSize: 11),
+                          ),
+                          onTap: () async {
+                            if (n['est_lu'] == false) {
+                              await ApiService.marquerNotificationLueAgent(n['id']);
+                              setState(() {});
+                            }
+                          },
                         );
                       },
                     );
                   }
                   
-                  return const Center(child: Text('Erreur de chargement'));
+                  return const Center(
+                    child: Text('Erreur de chargement des notifications'),
+                  );
                 },
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _notifTile(IconData icon, Color color, String title, String subtitle, String time) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        radius: 18,
-        backgroundColor: color.withOpacity(0.15),
-        child: Icon(icon, color: color, size: 18),
-      ),
-      title: Text(title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-      trailing: Text(time, style: const TextStyle(color: Colors.grey, fontSize: 11)),
     );
   }
 }
