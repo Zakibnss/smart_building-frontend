@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../../../models/user.dart';
+import '../../../services/api_service.dart';
 
 class ServiceDetailScreen extends StatefulWidget {
   final User user;
@@ -30,6 +33,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
   // Variables pour les champs supplémentaires selon le service
   bool _isUrgent = false;
   String? _selectedCategory;
+  bool _isSubmitting = false;
   
   // Catégories pour le service d'achat
   final List<String> _achatCategories = [
@@ -107,11 +111,11 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
     }
   }
 
-  void _submitRequest() {
+  Future<void> _submitRequest() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Veuillez sélectionner une date'),
             backgroundColor: Colors.orange,
           ),
@@ -119,40 +123,116 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
         return;
       }
       
-      // Afficher un résumé de la demande
+      setState(() {
+        _isSubmitting = true;
+      });
+      
+      // Afficher un dialogue de chargement
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            'Demande envoyée',
-            style: TextStyle(color: widget.serviceColor),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Service: ${widget.serviceType}'),
-              Text('Date: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
-              if (_selectedTime != null)
-                Text('Heure: ${_selectedTime!.format(context)}'),
-              Text('Description: ${_descriptionController.text}'),
-              if (_selectedCategory != null)
-                Text('Catégorie: $_selectedCategory'),
-              if (_isUrgent)
-                Text('Urgent: Oui', style: TextStyle(color: Colors.red)),
+              CircularProgressIndicator(color: widget.serviceColor),
+              const SizedBox(height: 16),
+              Text(
+                'Envoi de votre demande...',
+                style: TextStyle(color: widget.serviceColor),
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context); // Retour à la liste des services
-              },
-              child: Text('OK'),
-            ),
-          ],
         ),
       );
+      
+      try {
+        // Préparer les données de la demande
+        final requestData = {
+          'type': widget.serviceType,
+          'description': _descriptionController.text,
+          'date_souhaitee': _selectedDate!.toIso8601String().split('T')[0], // Format YYYY-MM-DD
+          'heure_souhaitee': _selectedTime?.format(context) ?? '',
+          'est_urgent': _isUrgent,
+          'user_id': widget.user.id,
+        };
+        
+        print('📤 Envoi demande: $requestData');
+        
+        // Appel API
+        final success = await ApiService.createServiceRequest(requestData);
+        
+        // Fermer le dialogue de chargement
+        if (mounted) Navigator.pop(context);
+        
+        if (success) {
+          if (mounted) {
+            // Afficher le succès
+            showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: Text(
+                  'Demande envoyée',
+                  style: TextStyle(color: widget.serviceColor),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.green, size: 50),
+                    const SizedBox(height: 16),
+                    Text('Service: ${widget.serviceType}'),
+                    const SizedBox(height: 4),
+                    Text('Date: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'),
+                    if (_selectedTime != null)
+                      Text('Heure: ${_selectedTime!.format(context)}'),
+                    const SizedBox(height: 4),
+                    Text('Description: ${_descriptionController.text}'),
+                    if (_selectedCategory != null)
+                      Text('Catégorie: $_selectedCategory'),
+                    if (_isUrgent)
+                      const Text('Urgent: Oui', style: TextStyle(color: Colors.red)),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Un agent vous contactera sous peu.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context); // Retour à la liste des services
+                    },
+                    child: const Text('OK'),
+                  ),
+                ],
+              ),
+            );
+          }
+        } else {
+          throw Exception('Erreur lors de l\'envoi de la demande');
+        }
+      } catch (e) {
+        if (mounted) Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+        print('❌ Erreur: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
+      }
     }
   }
 
@@ -256,7 +336,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
 
                 // Description
                 Text(
-                  'Description',
+                  'Description *',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -281,15 +361,18 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Veuillez décrire votre demande';
                     }
+                    if (value.length < 10) {
+                      return 'Description trop courte (minimum 10 caractères)';
+                    }
                     return null;
                   },
                 ),
 
                 const SizedBox(height: 16),
 
-                // Sélection de date (CORRIGÉ)
+                // Sélection de date
                 Text(
-                  'Date souhaitée',
+                  'Date souhaitée *',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -415,7 +498,7 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: _submitRequest,
+                    onPressed: _isSubmitting ? null : _submitRequest,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: widget.serviceColor,
                       foregroundColor: Colors.white,
@@ -424,13 +507,22 @@ class _ServiceDetailScreenState extends State<ServiceDetailScreen> {
                       ),
                       elevation: 2,
                     ),
-                    child: const Text(
-                      'Envoyer la demande',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text(
+                            'Envoyer la demande',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
